@@ -1,0 +1,46 @@
+{
+  "KAELEN VANCE": {
+    "character": "KAELEN VANCE",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_male",
+    "voice_id": "en-US-ChristopherNeural",
+    "pitch": "-4Hz",
+    "rate": "-3%",
+    "name": "Christopher",
+    "description": "Resonant deep cinematic male voice"
+  },
+  "NOVA THORNE": {
+    "character": "NOVA THORNE",
+    "language": "en",
+    "gender": "female",
+    "archetype": "calm_female",
+    "voice_id": "en-US-AriaNeural",
+    "pitch": "+0Hz",
+    "rate": "-2%",
+    "name": "Aria",
+    "description": "Calm poised female voice"
+  },
+  "DIRECTOR VANE": {
+    "character": "DIRECTOR VANE",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_villain_male",
+    "voice_id": "en-AU-WilliamNeural",
+    "pitch": "-6Hz",
+    "rate": "-5%",
+    "name": "William",
+    "description": "Deep authoritative villain male voice"
+  },
+  "AGENT STERLING": {
+    "character": "AGENT STERLING",
+    "language": "en",
+    "gender": "male",
+    "archetype": "warm_male",
+    "voice_id": "en-US-SteffanNeural",
+    "pitch": "+0Hz",
+    "rate": "-1%",
+    "name": "Steffan",
+    "description": "Warm natural conversational male voice"
+  }
+}

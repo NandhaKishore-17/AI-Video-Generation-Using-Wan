@@ -1,0 +1,31 @@
+1
+00:00:00,500 --> 00:00:06,273
+KAELEN VANCE: Does Director Vane know about the secondary key for Uncover Hidden Core Protocol?
+
+2
+00:00:06,573 --> 00:00:12,722
+INFORMANT: He suspects... but the blueprint is locked inside a dead man's memory chip.
+
+3
+00:00:00,500 --> 00:00:05,428
+NOVA THORNE: The memory signature matches the 2088 AI launch logs.
+
+4
+00:00:05,728 --> 00:00:09,167
+KAELEN VANCE: Can you extract the encryption sequence?
+
+5
+00:00:00,500 --> 00:00:04,809
+KAELEN VANCE: Ambush! Nova, get the drive out of here!
+
+6
+00:00:05,108 --> 00:00:07,238
+NOVA THORNE: I'm not leaving without you!
+
+7
+00:00:00,500 --> 00:00:06,593
+NOVA THORNE: Extraction complete. Next stop: Obsidian Central Command.
+
+8
+00:00:06,893 --> 00:00:09,152
+KAELEN VANCE: Let's finish this.

@@ -1,0 +1,27 @@
+1
+00:00:00,500 --> 00:00:06,500
+KAELEN VANCE: The grid frequency is fluctuating... someone breached the core mainframe for Uncover Hidden Core Protocol.
+
+2
+00:00:07,000 --> 00:00:12,199
+NOVA THORNE: Be careful, Kaelen Vance. Obsidian security forces dispatched hunter drones two minutes ago.
+
+3
+00:00:00,500 --> 00:00:05,700
+NOVA THORNE: This isn't a breach... it's a message left by the first AI system.
+
+4
+00:00:06,200 --> 00:00:08,699
+KAELEN VANCE: What does it say?
+
+5
+00:00:09,199 --> 00:00:12,799
+NOVA THORNE: It says we were never meant to be free.
+
+6
+00:00:00,500 --> 00:00:05,299
+KAELEN VANCE: If Director Vane gets this key, the network shuts down for good.
+
+7
+00:00:05,799 --> 00:00:09,000
+NOVA THORNE: Then we make sure he never finds it.
