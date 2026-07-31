@@ -7,6 +7,7 @@ import uvicorn
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.endpoints import router as api_router
+from app.engines.video.wan_video_engine import get_video_engine
 
 import logging
 from contextlib import asynccontextmanager
@@ -31,6 +32,12 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to restore scheduler on startup: {e}")
     finally:
         db.close()
+
+    try:
+        engine = await get_video_engine()
+        logger.info("Video engine initialized: %s", type(engine).__name__)
+    except Exception as exc:
+        logger.warning("Video engine initialization skipped: %s", exc)
     
     yield
     

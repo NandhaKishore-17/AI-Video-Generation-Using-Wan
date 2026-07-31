@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
@@ -22,11 +23,17 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "qwen"  # qwen, ollama, openai-compatible, mock
     LLM_API_BASE: str = "http://localhost:11434/v1"
     LLM_MODEL: str = "qwen2.5:14b"
+
+    # Ollama settings
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.2:3b"
+    OLLAMA_TIMEOUT: int = 120  # seconds per request
     
     IMAGE_PROVIDER: str = "flux"  # flux, sdxl, diffusers, mock
     IMAGE_API_BASE: str = "http://localhost:7860"
     
     VIDEO_PROVIDER: str = "wan_local"  # wan_local, cogvideox, wan, mock
+    VIDEO_ENGINE: str = "wan"  # mock, wan, wan_local
     VIDEO_API_BASE: str = "http://localhost:7861"
     
     VOICE_PROVIDER: str = "f5-tts"  # f5-tts, edge-tts, elevenlabs, openai-tts, pyttsx3
@@ -64,7 +71,15 @@ class Settings(BaseSettings):
     # Platform Scheduler Defaults
     AUTO_GENERATE_INTERVAL_MINUTES: int = 60
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=[
+            str(Path(__file__).resolve().parents[3] / ".env"),
+            str(Path(__file__).resolve().parents[2] / ".env"),
+            ".env",
+        ],
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 settings = Settings()
 
