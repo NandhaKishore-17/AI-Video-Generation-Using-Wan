@@ -169,6 +169,21 @@ class RenderTaskResponse(BaseModel):
         from_attributes = True
 
 
+# --- Wan2.2 Video Generation Schemas ---
+class VideoGenerateRequest(BaseModel):
+    prompt: str = Field(..., example="A futuristic cyberpunk city at night")
+    duration: float = Field(..., example=5.0, gt=0, le=30)
+    width: int = Field(..., example=1280, gt=0, le=1920)
+    height: int = Field(..., example=720, gt=0, le=1080)
+    fps: int = Field(..., example=24, gt=1, le=60)
+
+
+class VideoGenerateResponse(BaseModel):
+    status: str
+    video_path: str
+    message: Optional[str] = None
+
+
 # --- Memory & Scheduler Schemas ---
 class MemoryQueryRequest(BaseModel):
     universe_id: str

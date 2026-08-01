@@ -3,7 +3,8 @@ import os
 
 import pytest
 
-from app.engines.video.wan_video_engine import MockVideoEngine, WanVideoEngine, initialize_video_engine
+from app.engines.video.mock_video_engine import MockVideoEngine
+from app.engines.video.wan_video_engine import WanVideoEngine, initialize_video_engine
 
 
 @pytest.mark.asyncio
@@ -17,14 +18,13 @@ async def test_initialize_video_engine_returns_mock_when_env_is_mock(monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_initialize_video_engine_falls_back_to_mock_when_wan_init_fails(monkeypatch, tmp_path):
+async def test_initialize_video_engine_fails_when_wan_init_fails(monkeypatch, tmp_path):
     monkeypatch.setenv("VIDEO_ENGINE", "wan")
     monkeypatch.setenv("WAN_MODEL_PATH", str(tmp_path / "missing-model"))
     monkeypatch.setenv("MEDIA_OUTPUT_DIR", str(tmp_path))
 
-    engine = await initialize_video_engine()
-
-    assert isinstance(engine, MockVideoEngine)
+    with pytest.raises(Exception):
+        await initialize_video_engine()
 
 
 @pytest.mark.asyncio
