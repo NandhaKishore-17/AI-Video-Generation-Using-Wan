@@ -1,4 +1,5 @@
 import logging
+import traceback
 from pathlib import Path
 from typing import Optional
 
@@ -29,17 +30,16 @@ class Wan22Wrapper:
         if self._initialized:
             return
 
-        wan_pipeline.model_path = self.model_path
-        wan_pipeline.load_model()
-
-        if not wan_pipeline.is_loaded:
-            raise RuntimeError(
-                f"Wan2.2 model failed to load from {self.model_path}. "
-                "Verify the model directory and GPU availability."
-            )
-
-        self._initialized = True
-        logger.info("Wan2.2 model loaded from %s", self.model_path)
+        logger.info("Initializing Wan22Wrapper with model_path=%s", self.model_path)
+        try:
+            wan_pipeline.model_path = self.model_path
+            wan_pipeline.load_model()
+            self._initialized = True
+            logger.info("Wan22Wrapper successfully initialized model from %s", self.model_path)
+        except Exception as exc:
+            tb = traceback.format_exc()
+            logger.error("Wan22Wrapper initialization caught error:\n%s", tb)
+            self._initialized = False
 
     async def generate_video(
         self,
@@ -52,6 +52,7 @@ class Wan22Wrapper:
         duration: float,
         seed: int,
     ) -> str:
+        logger.info("Wan22Wrapper.generate_video called for prompt='%s', output='%s'", prompt[:60], output_path)
         self.initialize()
 
         output_dir = Path(output_path).parent
@@ -63,13 +64,18 @@ class Wan22Wrapper:
 
             Image.new("RGB", (max(1, width), max(1, height)), color=(0, 0, 0)).save(condition_path)
 
-        return await wan_pipeline.generate_video(
-            image_path=str(condition_path),
-            prompt=prompt,
-            output_path=output_path,
-            height=height,
-            width=width,
-            fps=fps,
-            seed=seed,
-            num_frames=max(1, int(duration * fps)),
-        )
+        try:
+            return await wan_pipeline.generate_video(
+                image_path=str(condition_path),
+                prompt=prompt,
+                output_path=output_path,
+                height=height,
+                width=width,
+                fps=fps,
+                seed=seed,
+                num_frames=max(1, int(duration * fps)),
+            )
+        except Exception as exc:
+            tb = traceback.format_exc()
+            logger.error("Wan22Wrapper.generate_video failed:\n%s", tb)
+            raise

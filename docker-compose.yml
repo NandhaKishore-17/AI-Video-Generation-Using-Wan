@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wan_video_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Map the local models folder to the container's models folder
+      - ./models:/app/models
+      # Map the local output folder to the container's output folder
+      - ./media_output:/app/media_output
+      # Mount the sqlite DB
+      - ./universe_platform.db:/app/backend/universe_platform.db
+    env_file:
+      - .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

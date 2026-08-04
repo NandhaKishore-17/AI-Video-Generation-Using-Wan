@@ -1,44 +1,35 @@
 import asyncio
 import logging
 import threading
+import traceback
 from pathlib import Path
 from typing import Optional
 
 from app.core.config import settings
 from app.engines.video.video_engine import VideoEngine
+from app.engines.video.wan22 import Wan22Wrapper
 
 logger = logging.getLogger("wan_video_engine")
 
 
 class WanVideoEngine(VideoEngine):
-    """Real video engine backed by the local Wan 2.2 pipeline."""
+    """Real video engine backed by the local Wan 2.2 pipeline via Wan22Wrapper."""
 
     def __init__(self, model_path: Optional[str] = None):
         self.model_path = Path(model_path or settings.WAN_MODEL_PATH)
         self.output_dir = Path(settings.MEDIA_OUTPUT_DIR)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self._pipeline = None
-        self._initialized = False
+        self.wrapper = Wan22Wrapper.get_instance()
+        self.wrapper.model_path = self.model_path
 
     async def initialize(self) -> None:
-        if self._initialized:
-            return
-
+        logger.info("Initializing WanVideoEngine (delegating to Wan22Wrapper)...")
         try:
-            from app.engines.wan_pipeline import wan_pipeline
-
-            if getattr(wan_pipeline, "model_path", None) != self.model_path:
-                wan_pipeline.model_path = Path(self.model_path)
-            if not getattr(wan_pipeline, "is_loaded", False):
-                wan_pipeline.load_model()
-
-            self._pipeline = wan_pipeline
-            self._initialized = True
-            logger.info("WanVideoEngine initialized with local Wan pipeline")
+            self.wrapper.initialize()
+            logger.info("WanVideoEngine initialized successfully.")
         except Exception as exc:
-            self._pipeline = None
-            self._initialized = False
-            logger.warning("WanVideoEngine initialization failed: %s", exc)
+            tb = traceback.format_exc()
+            logger.error("WanVideoEngine initialization error:\n%s", tb)
             raise
 
     def render_placeholder(self, job_id: str) -> str:
@@ -111,7 +102,7 @@ class WanVideoEngine(VideoEngine):
                         seed=seed,
                     )
                 )
-            except BaseException as exc:  # pragma: no cover - defensive path
+            except BaseException as exc:
                 error["value"] = exc
 
         thread = threading.Thread(target=runner, daemon=True)
@@ -158,26 +149,23 @@ class WanVideoEngine(VideoEngine):
         duration: float,
         seed: int,
     ) -> str:
-        await self.initialize()
-        if self._pipeline is None:
-            raise RuntimeError("Wan pipeline is unavailable")
-
+        logger.info("WanVideoEngine.generate_real_video called for output=%s", output_path)
         temp_image = self.output_dir / "wan_condition.png"
         from PIL import Image
 
-        Image.new("RGB", (max(1, width), max(1, height)), color=(0, 0, 0)).save(temp_image)
+        if not temp_image.exists():
+            Image.new("RGB", (max(1, width), max(1, height)), color=(0, 0, 0)).save(temp_image)
 
-        await self._pipeline.generate_video(
-            image_path=str(temp_image),
+        return await self.wrapper.generate_video(
             prompt=scene_prompt,
+            image_path=str(temp_image),
             output_path=output_path,
-            height=height,
             width=width,
+            height=height,
             fps=fps,
+            duration=duration,
             seed=seed,
-            num_frames=max(1, int(duration * fps)),
         )
-        return output_path
 
 
 _video_engine_instance: Optional[VideoEngine] = None
@@ -189,6 +177,7 @@ async def get_video_engine() -> VideoEngine:
         return _video_engine_instance
 
     engine_name = (settings.VIDEO_ENGINE or settings.VIDEO_PROVIDER or "mock").lower()
+    logger.info("get_video_engine: engine_name=%s", engine_name)
 
     if engine_name == "mock":
         from app.engines.video.mock_video_engine import MockVideoEngine

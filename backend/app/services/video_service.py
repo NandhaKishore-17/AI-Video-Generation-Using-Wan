@@ -1,5 +1,7 @@
 import logging
+import traceback
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 from app.core.config import settings
@@ -16,39 +18,53 @@ class VideoGenerationService:
     async def generate_video(
         self,
         prompt: str,
-        duration: float,
-        width: int,
-        height: int,
-        fps: int,
+        duration: float = 2.0,
+        width: int = 640,
+        height: int = 360,
+        fps: int = 12,
+        output_path: Optional[str] = None,
     ) -> str:
         """
         Generate a video using the configured video engine.
 
         Returns the relative media path of the generated MP4.
         """
-        filename = f"wan2_2_{uuid4().hex}.mp4"
-        output_path = str(self.output_dir / filename)
+        if not output_path:
+            filename = f"wan2_2_{uuid4().hex}.mp4"
+            output_path = str(self.output_dir / filename)
 
-        engine = await get_video_engine()
         logger.info(
-            "Using video engine %s to generate Wan2.2 clip: %s",
-            type(engine).__name__,
+            "VideoService.generate_video starting: prompt='%s', output_path=%s, resolution=%sx%s, fps=%s, duration=%ss",
+            prompt[:80],
             output_path,
+            width,
+            height,
+            fps,
+            duration,
         )
 
-        video_path = await engine.render_video_async(
-            scene_prompt=prompt,
-            output_path=output_path,
-            width=width,
-            height=height,
-            fps=fps,
-            duration=duration,
-            seed=42,
-        )
+        try:
+            engine = await get_video_engine()
+            logger.info("VideoService: Acquired video engine '%s'", type(engine).__name__)
 
-        relative_path = f"media_output/{Path(video_path).name}"
-        logger.info("Video generation complete. Path=%s", relative_path)
-        return relative_path
+            video_path = await engine.render_video_async(
+                scene_prompt=prompt,
+                output_path=output_path,
+                width=width,
+                height=height,
+                fps=fps,
+                duration=duration,
+                seed=42,
+            )
+
+            relative_path = f"media_output/{Path(video_path).name}"
+            logger.info("VideoService: Video generation successfully completed. relative_path=%s", relative_path)
+            return relative_path
+
+        except Exception as exc:
+            tb = traceback.format_exc()
+            logger.error("VideoService: Video generation failed with traceback:\n%s", tb)
+            raise
 
 
 video_service = VideoGenerationService()

@@ -1,18 +1,18 @@
 """
-Wan 2.2 TI2V-5B Local GPU Pipeline.
+Wan 2.2 TI2V-5B Local GPU/CPU Pipeline.
 
-Loads and runs the Wan 2.2 Text/Image-to-Video model from local weights
-at the path specified by settings.WAN_MODEL_PATH.
+Loads and runs the Wan 2.2 Text/Image-to-Video model from local weights or
+Hugging Face repository ('Wan-AI/Wan2.2-TI2V-5B-Diffusers').
 
-This pipeline is designed to load once and reuse the same model for
-subsequent video requests.
+This pipeline loads once and reuses the same model for subsequent requests.
 """
 
 import asyncio
 import gc
 import logging
+import traceback
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -36,12 +36,12 @@ class WanInferenceError(WanPipelineError):
 class WanLocalPipeline:
     """
     Manages loading, running, and unloading the Wan 2.2 TI2V-5B model
-    for local GPU-based image-to-video generation.
+    for image-to-video generation using diffusers.
     """
 
     def __init__(self):
         self.pipeline = None
-        self.model_path = Path(settings.WAN_MODEL_PATH)
+        self.model_path = settings.WAN_MODEL_PATH
         self.device = settings.WAN_DEVICE
         self._is_loaded = False
 
@@ -49,107 +49,128 @@ class WanLocalPipeline:
     def is_loaded(self) -> bool:
         return self._is_loaded and self.pipeline is not None
 
+    def _resolve_model_id(self) -> str:
+        """Resolve model path or HuggingFace repository ID."""
+        model_str = str(self.model_path).strip()
+        local_path = Path(model_str)
+        if local_path.exists():
+            logger.info("Using local model directory: %s", local_path.resolve())
+            return str(local_path.resolve())
+        
+        # If string is a valid HF repo or default fallback
+        if "Wan-AI/" in model_str:
+            logger.info("Using Hugging Face repository ID: %s", model_str)
+            return model_str
+            
+        default_hf_repo = "Wan-AI/Wan2.2-TI2V-5B-Diffusers"
+        logger.info("Local path '%s' not found. Falling back to Hugging Face repository '%s'", model_str, default_hf_repo)
+        return default_hf_repo
+
     def load_model(self) -> None:
+        logger.info("=" * 80)
+        logger.info("STARTING REAL WAN 2.2 PIPELINE INITIALIZATION")
+        logger.info("=" * 80)
+
+        # ── Step 1: Loading configuration ───────────────────────────────────
+        logger.info("[STEP 1/9] Loading configuration...")
+        model_id = self._resolve_model_id()
+        logger.info("  - Resolved Model ID/Path: %s", model_id)
+        logger.info("  - Configured device: %s", self.device)
+        logger.info("  - Enable CPU offload: %s", settings.WAN_ENABLE_CPU_OFFLOAD)
+
         if self.is_loaded:
-            logger.info("Wan 2.2 model already loaded, skipping.")
+            logger.info("Wan 2.2 model already loaded into memory, skipping.")
             return
 
-        self.model_path = Path(self.model_path)
-        if not self.model_path.exists():
-            raise WanModelLoadingError(
-                f"Wan model directory not found: {self.model_path}"
-            )
+        # ── Step 2: GPU/CPU detection ───────────────────────────────────────
+        logger.info("[STEP 2/9] GPU/CPU detection...")
+        cuda_available = torch.cuda.is_available()
+        # Also check if this is a CPU-only torch build
+        torch_cuda_version = getattr(torch.version, 'cuda', None)
+        logger.info("  - PyTorch Version : %s", torch.__version__)
+        logger.info("  - CUDA Available  : %s", cuda_available)
+        logger.info("  - CUDA Build Ver  : %s", torch_cuda_version or 'N/A (CPU-only build)')
 
-        if "cuda" not in self.device:
-            raise WanModelLoadingError(
-                "Wan 2.2 TI2V-5B requires a CUDA device. "
-                "Set WAN_DEVICE to a valid CUDA device like cuda:0."
-            )
+        if cuda_available:
+            device_count = torch.cuda.device_count()
+            device_name = torch.cuda.get_device_name(0) if device_count > 0 else "Unknown"
+            logger.info("  - GPU Count: %s, Device 0: %s", device_count, device_name)
+            target_device = settings.WAN_DEVICE if "cuda" in settings.WAN_DEVICE else "cuda:0"
+            torch_dtype = torch.bfloat16
+        else:
+            logger.warning("  - CUDA is NOT available — running on CPU with float32 precision (slow but functional).")
+            if torch_cuda_version is None:
+                logger.warning("  - NOTE: torch was installed as a CPU-only build (+cpu). GPU acceleration unavailable.")
+                logger.warning("  - TIP : Reinstall torch with CUDA support: pip install torch --index-url https://download.pytorch.org/whl/cu121")
+            target_device = "cpu"
+            torch_dtype = torch.float32
 
-        if not torch.cuda.is_available():
-            raise WanModelLoadingError(
-                "CUDA is not available. Ensure CUDA drivers and a compatible GPU are installed."
-            )
-
-        logger.info("Loading Wan 2.2 TI2V-5B from %s", self.model_path)
-        logger.info("Target device: %s", self.device)
+        self.device = target_device
 
         try:
-            from diffusers import AutoencoderKLWan, WanImageToVideoPipeline
+            from diffusers import WanImageToVideoPipeline
             from diffusers.schedulers import UniPCMultistepScheduler
-            from transformers import CLIPVisionModel, AutoTokenizer, UMT5EncoderModel
 
-            tokenizer_path = self.model_path / "google" / "umt5-xxl"
-            if not tokenizer_path.exists():
-                raise WanModelLoadingError(
-                    f"Tokenizer path not found: {tokenizer_path}"
+            # ── Step 3 to 6: Loading WanImageToVideoPipeline from pretrained ─
+            logger.info("[STEP 3-6/9] Loading WanImageToVideoPipeline components from %s...", model_id)
+            self.pipeline = WanImageToVideoPipeline.from_pretrained(
+                model_id,
+                torch_dtype=torch_dtype,
+            )
+
+            # ── Step 7: Loading scheduler ───────────────────────────────────
+            logger.info("[STEP 7/9] Configuring UniPCMultistepScheduler...")
+            try:
+                self.pipeline.scheduler = UniPCMultistepScheduler.from_config(
+                    self.pipeline.scheduler.config,
+                    flow_shift=5.0,
+                )
+            except Exception as sched_err:
+                logger.warning("Scheduler custom flow_shift warning: %s. Using default config.", sched_err)
+                self.pipeline.scheduler = UniPCMultistepScheduler.from_config(
+                    self.pipeline.scheduler.config
                 )
 
-            logger.info("Loading UMT5-XXL tokenizer...")
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-
-            logger.info("Loading UMT5-XXL text encoder...")
-            text_encoder = UMT5EncoderModel.from_pretrained(
-                self.model_path,
-                subfolder=None,
-                torch_dtype=torch.bfloat16,
-            )
-
-            logger.info("Loading Wan 2.2 VAE...")
-            vae = AutoencoderKLWan.from_pretrained(
-                self.model_path,
-                subfolder=None,
-                torch_dtype=torch.float32,
-            )
-
-            logger.info("Loading CLIP Vision image encoder...")
-            image_encoder = CLIPVisionModel.from_pretrained(
-                self.model_path,
-                subfolder=None,
-                torch_dtype=torch.float32,
-            )
-
-            logger.info("Assembling WanImageToVideoPipeline...")
-            self.pipeline = WanImageToVideoPipeline.from_pretrained(
-                self.model_path,
-                vae=vae,
-                text_encoder=text_encoder,
-                tokenizer=tokenizer,
-                image_encoder=image_encoder,
-                torch_dtype=torch.bfloat16,
-            )
-
-            self.pipeline.scheduler = UniPCMultistepScheduler.from_config(
-                self.pipeline.scheduler.config,
-                flow_shift=5.0,
-            )
-
-            if settings.WAN_ENABLE_CPU_OFFLOAD:
+            # Only enable CPU offload when CUDA is present (requires accelerate + GPU)
+            if settings.WAN_ENABLE_CPU_OFFLOAD and cuda_available:
                 logger.info("Enabling model CPU offloading for VRAM efficiency...")
                 self.pipeline.enable_model_cpu_offload()
             else:
+                logger.info("Moving real pipeline to device %s...", self.device)
                 self.pipeline = self.pipeline.to(self.device)
 
             try:
-                self.pipeline.vae.enable_slicing()
-                self.pipeline.vae.enable_tiling()
-                logger.info("VAE slicing + tiling enabled.")
-            except AttributeError:
-                logger.debug("VAE slicing/tiling not supported; continuing without optimizations.")
+                if hasattr(self.pipeline, "vae") and self.pipeline.vae is not None:
+                    self.pipeline.vae.enable_slicing()
+                    self.pipeline.vae.enable_tiling()
+                    logger.info("VAE slicing + tiling enabled for memory optimization.")
+            except Exception as opt_err:
+                logger.debug("VAE slicing/tiling optimization notice: %s", opt_err)
+
+            # ── Log every loaded component ────────────────────────────────────
+            logger.info("[COMPONENTS] Listing all loaded pipeline components:")
+            for comp_name in ["tokenizer", "text_encoder", "transformer", "vae", "scheduler", "image_encoder"]:
+                comp = getattr(self.pipeline, comp_name, None)
+                if comp is not None:
+                    logger.info("  + %-20s: %s", comp_name, type(comp).__name__)
+                else:
+                    logger.warning("  - %-20s: MISSING / None", comp_name)
 
             self._is_loaded = True
-            logger.info("Wan 2.2 TI2V-5B pipeline loaded successfully.")
+            logger.info("=" * 80)
+            logger.info("REAL WAN 2.2 TI2V-5B PIPELINE LOADED SUCCESSFULLY!")
+            logger.info("=" * 80)
 
         except ImportError as exc:
-            logger.error("Missing Wan2.2 dependency: %s", exc)
-            raise WanModelLoadingError(
-                "Missing dependency for Wan2.2. Install diffusers, transformers, accelerate, safetensors, sentencepiece."
-            ) from exc
+            tb = traceback.format_exc()
+            logger.error("Missing Wan2.2 dependency:\n%s", tb)
+            raise WanModelLoadingError(f"Missing dependency for Wan2.2: {exc}\nTraceback:\n{tb}") from exc
         except Exception as exc:
-            logger.error("Failed to load Wan2.2 model: %s", exc, exc_info=True)
+            tb = traceback.format_exc()
+            logger.error("Failed to load Wan2.2 model:\n%s", tb)
             self.pipeline = None
             self._is_loaded = False
-            raise WanModelLoadingError(f"Failed to load Wan2.2 model: {exc}") from exc
+            raise WanModelLoadingError(f"Failed to load Wan2.2 model from '{model_id}': {exc}\nTraceback:\n{tb}") from exc
 
     def unload_model(self) -> None:
         if self.pipeline is not None:
@@ -159,14 +180,14 @@ class WanLocalPipeline:
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            logger.info("Wan2.2 model unloaded and GPU memory freed.")
+            logger.info("Wan2.2 model unloaded and memory freed.")
 
     async def generate_video(
         self,
         image_path: str,
         prompt: str,
         output_path: str,
-        negative_prompt: str = "Distorted, discontinuous, ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, missing arms, missing legs, extra fingers",
+        negative_prompt: str = "Distorted, discontinuous, ugly, blurry, low resolution, motionless, static, disfigured",
         num_frames: Optional[int] = None,
         height: Optional[int] = None,
         width: Optional[int] = None,
@@ -178,12 +199,6 @@ class WanLocalPipeline:
         if not prompt or not prompt.strip():
             raise WanInferenceError("Prompt must be a non-empty string.")
 
-        if not self.is_loaded:
-            self.load_model()
-
-        if self.pipeline is None:
-            raise WanInferenceError("Wan2.2 pipeline is unavailable after initialization.")
-
         num_frames = num_frames or settings.WAN_NUM_FRAMES
         height = height or settings.DEFAULT_HEIGHT
         width = width or settings.DEFAULT_WIDTH
@@ -191,8 +206,16 @@ class WanLocalPipeline:
         guidance_scale = guidance_scale if guidance_scale is not None else settings.WAN_GUIDANCE_SCALE
         fps = fps or settings.DEFAULT_FPS
 
+        if not self.is_loaded:
+            logger.info("Model not loaded yet, triggering load_model()...")
+            self.load_model()
+
+        if self.pipeline is None:
+            raise WanInferenceError("Real Wan2.2 pipeline is unavailable after loading attempt.")
+
+        # ── Step 8: Real Video generation (inference) ───────────────────────
         logger.info(
-            "Starting Wan2.2 inference: prompt=%s, width=%s, height=%s, fps=%s, frames=%s, steps=%s, seed=%s",
+            "[STEP 8/9] STARTING REAL WAN 2.2 INFERENCE: prompt='%s', width=%s, height=%s, fps=%s, frames=%s, steps=%s, seed=%s",
             prompt[:120],
             width,
             height,
@@ -204,7 +227,7 @@ class WanLocalPipeline:
 
         loop = asyncio.get_running_loop()
 
-        def _run_inference() -> None:
+        def _run_real_inference() -> None:
             from diffusers.utils import export_to_video
             from PIL import Image
 
@@ -214,13 +237,16 @@ class WanLocalPipeline:
                     image = image.resize((width, height))
                     logger.info("Resized conditioning image to %s", (width, height))
             else:
-                logger.info("Creating blank conditioning image at %s", image_path)
+                logger.info("Creating conditioning image for Wan2.2 at %s", image_path)
                 image = Image.new("RGB", (width, height), color=(0, 0, 0))
 
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            generator_device = self.device if self.device != "cpu" else "cpu"
+            # Generator must always be on 'cpu' when no CUDA — even if self.device differs
+            generator_device = "cpu" if not torch.cuda.is_available() else self.device
             generator = torch.Generator(device=generator_device).manual_seed(seed)
+            logger.info("Generator device: %s", generator_device)
 
+            logger.info("Executing real PyTorch diffusion inference loop...")
             with torch.inference_mode():
                 output = self.pipeline(
                     image=image,
@@ -235,14 +261,17 @@ class WanLocalPipeline:
                 )
 
             frames = output.frames[0]
+            # ── Step 9: Saving real output video ────────────────────────────────
+            logger.info("[STEP 9/9] Exporting REAL Wan2.2 video to %s...", output_path)
             export_to_video(frames, output_path, fps=fps)
-            logger.info("Wan2.2 inference finished, exported video to %s", output_path)
+            logger.info("REAL Wan2.2 inference completed successfully. Saved video to %s", output_path)
 
         try:
-            await loop.run_in_executor(None, _run_inference)
+            await loop.run_in_executor(None, _run_real_inference)
         except Exception as exc:
-            logger.error("Wan2.2 inference failed: %s", exc, exc_info=True)
-            raise WanInferenceError(str(exc)) from exc
+            tb = traceback.format_exc()
+            logger.error("Real Wan2.2 inference failed with traceback:\n%s", tb)
+            raise WanInferenceError(f"Real Wan2.2 inference failed: {exc}\nTraceback:\n{tb}") from exc
 
         if not Path(output_path).exists():
             raise WanInferenceError(f"Wan2.2 generation did not produce output at {output_path}")
