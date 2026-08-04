@@ -7,7 +7,7 @@ GET  /story/{id}    — retrieve the generated story JSON
 GET  /download/{id} — download the placeholder MP4
 """
 import os
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -21,6 +21,13 @@ router = APIRouter()
 
 class GenerateRequest(BaseModel):
     prompt: str
+
+
+class CompleteVideoRequest(BaseModel):
+    genre: str = "Fantasy"
+    theme: str = "Magic School"
+    duration: int = 60
+    language: str = "English"
 
 
 class JobResponse(BaseModel):
@@ -65,6 +72,13 @@ class StoryResponse(BaseModel):
 async def generate(request: GenerateRequest):
     """Submit a user prompt and receive a job_id for tracking."""
     job_id = job_manager.enqueue_job(request.prompt)
+    return JobResponse(job_id=job_id, status="queued")
+
+
+@router.post("/generate-complete-video", response_model=JobResponse, summary="Enqueue a complete video generation job")
+async def generate_complete_video(request: CompleteVideoRequest):
+    """Create a story-driven video pipeline with characters, prompts, voice, subtitles, music, and final composition."""
+    job_id = job_manager.enqueue_complete_video_job(request.model_dump())
     return JobResponse(job_id=job_id, status="queued")
 
 

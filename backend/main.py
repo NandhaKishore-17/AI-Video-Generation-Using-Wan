@@ -69,23 +69,35 @@ app.include_prefix = settings.API_V1_STR
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(api_router)  # Also expose directly at root for convenience
 
-@app.get("/")
-def root():
-    return {
-        "platform": settings.PROJECT_NAME,
-        "version": settings.VERSION,
-        "status": "ONLINE",
-        "docs_url": "/docs",
-        "supported_models": {
-            "story": "Qwen 2.5 14B / 72B",
-            "image": "FLUX.1 / SDXL",
-            "video": "CogVideoX / Wan",
-            "voice": "Piper / Kokoro TTS",
-            "speech_rec": "Whisper",
-            "music": "MusicGen",
-            "vector_memory": "Qdrant"
+# Mount frontend static files if they exist
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend/dist"))
+if os.path.exists(frontend_dist):
+    logger.info(f"Serving frontend from {frontend_dist}")
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+    
+    @app.get("/")
+    def read_index():
+        from fastapi.responses import FileResponse
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+else:
+    logger.warning(f"Frontend dist directory not found at {frontend_dist}")
+    @app.get("/")
+    def root():
+        return {
+            "platform": settings.PROJECT_NAME,
+            "version": settings.VERSION,
+            "status": "ONLINE",
+            "docs_url": "/docs",
+            "supported_models": {
+                "story": "Qwen 2.5 14B / 72B",
+                "image": "FLUX.1 / SDXL",
+                "video": "CogVideoX / Wan",
+                "voice": "Piper / Kokoro TTS",
+                "speech_rec": "Whisper",
+                "music": "MusicGen",
+                "vector_memory": "Qdrant"
+            }
         }
-    }
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

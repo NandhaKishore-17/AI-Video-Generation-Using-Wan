@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import shutil
+from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from app.core.config import settings
 
@@ -23,8 +24,11 @@ class VoiceGenerationEngine:
 
     def __init__(self):
         self.provider = settings.VOICE_PROVIDER
-        self.media_dir = settings.MEDIA_OUTPUT_DIR
+        self.media_dir = Path(settings.MEDIA_OUTPUT_DIR)
+        self.audio_dir = Path("media/audio")
         self.temp_dir = settings.TEMP_DIR
+        self.media_dir.mkdir(parents=True, exist_ok=True)
+        self.audio_dir.mkdir(parents=True, exist_ok=True)
         self.tts_service = TTSService(provider=self.provider)
 
     async def generate_scene_audio_and_srt(
@@ -39,7 +43,8 @@ class VoiceGenerationEngine:
         Saves dialogues to: audio/episode_{episode_id}/scene_{scene_id}/{speaker}_{idx}.wav
         """
         filename = f"audio_{scene_id}.wav"
-        filepath = os.path.join(self.media_dir, filename)
+        filepath = str(self.media_dir / filename)
+        audio_output_path = str(self.audio_dir / filename)
 
         # Process dialogue lines through services.tts pipeline
         res = await self.tts_service.process_scene_dialogues(
@@ -56,6 +61,7 @@ class VoiceGenerationEngine:
         # Copy composite scene audio to media_output for video renderer access
         if os.path.exists(composite_wav):
             shutil.copyfile(composite_wav, filepath)
+            shutil.copyfile(composite_wav, audio_output_path)
 
         return f"/media/{filename}", srt_content, total_duration
 

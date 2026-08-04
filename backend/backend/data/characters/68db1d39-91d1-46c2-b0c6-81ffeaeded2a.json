@@ -1,0 +1,16 @@
+{
+  "uuid": "68db1d39-91d1-46c2-b0c6-81ffeaeded2a",
+  "name": "Eryndor Thorne",
+  "age": 16,
+  "gender": "Male",
+  "hair": "Brown",
+  "face": " Oval",
+  "skin": "Fair",
+  "clothes": {
+    "top": "White wizard robe",
+    "bottom": "Black trousers"
+  },
+  "personality": "Curious and adventurous",
+  "voice": "Deep and resonant",
+  "speaking_style": "Formal and confident"
+}

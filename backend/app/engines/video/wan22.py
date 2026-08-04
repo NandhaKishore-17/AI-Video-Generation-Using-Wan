@@ -33,9 +33,8 @@ class Wan22Wrapper:
         logger.info("Initializing Wan22Wrapper with model_path=%s", self.model_path)
         try:
             wan_pipeline.model_path = self.model_path
-            wan_pipeline.load_model()
             self._initialized = True
-            logger.info("Wan22Wrapper successfully initialized model from %s", self.model_path)
+            logger.info("Wan22Wrapper initialized; model loading will be deferred to the generation step.")
         except Exception as exc:
             tb = traceback.format_exc()
             logger.error("Wan22Wrapper initialization caught error:\n%s", tb)

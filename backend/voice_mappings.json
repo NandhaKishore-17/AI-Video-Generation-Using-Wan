@@ -53,5 +53,16 @@
     "rate": "+0%",
     "name": "Andrew",
     "description": "Young energetic male voice"
+  },
+  "NARRATOR": {
+    "character": "NARRATOR",
+    "language": "en",
+    "gender": "male",
+    "archetype": "british_male",
+    "voice_id": "en-GB-RyanNeural",
+    "pitch": "-1Hz",
+    "rate": "-2%",
+    "name": "Ryan (British)",
+    "description": "Polished British cinematic male voice"
   }
 }
