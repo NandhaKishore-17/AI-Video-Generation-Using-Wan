@@ -7,9 +7,10 @@ import { Plus, Globe, Sparkles, BookOpen, Layers, Trash2, RefreshCw } from 'luci
 interface UniverseManagerProps {
   activeUniverseId?: string;
   onSelectUniverse?: (id: string) => void;
+  onUniversesChanged?: () => void;
 }
 
-export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverseId, onSelectUniverse }) => {
+export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverseId, onSelectUniverse, onUniversesChanged }) => {
   const [universes, setUniverses] = useState<Universe[]>([]);
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
@@ -25,6 +26,7 @@ export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverse
   const loadUniverses = async () => {
     const data = await api.getUniverses();
     setUniverses(data);
+    if (onUniversesChanged) onUniversesChanged();
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -46,7 +48,7 @@ export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverse
   const handleDeleteUniverse = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this universe? All episodes and memory will be deleted.")) {
       await api.deleteUniverse(id);
-      loadUniverses();
+      await loadUniverses();
     }
   };
 
@@ -56,13 +58,15 @@ export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverse
       await api.resetAllUniverses();
       setUniverses([]);
       setResetting(false);
+      if (onUniversesChanged) onUniversesChanged();
     }
   };
 
   const handleToggleAutoGenerate = async (id: string) => {
     await api.toggleUniverseAutoGenerate(id);
-    loadUniverses();
+    await loadUniverses();
   };
+
 
   return (
     <div className="space-y-8">

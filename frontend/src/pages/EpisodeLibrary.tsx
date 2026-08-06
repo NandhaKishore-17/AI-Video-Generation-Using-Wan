@@ -8,16 +8,18 @@ import { Library, Film, FileText, Play, CheckCircle2, Download } from 'lucide-re
 
 interface EpisodeLibraryProps {
   activeUniverseId?: string;
+  refreshTrigger?: number;
 }
 
-export const EpisodeLibrary: React.FC<EpisodeLibraryProps> = ({ activeUniverseId }) => {
+export const EpisodeLibrary: React.FC<EpisodeLibraryProps> = ({ activeUniverseId, refreshTrigger }) => {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [selectedEp, setSelectedEp] = useState<Episode | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'screenplay'>('video');
 
   useEffect(() => {
     loadEpisodes();
-  }, [activeUniverseId]);
+  }, [activeUniverseId, refreshTrigger]);
+
 
   const loadEpisodes = async () => {
     const data = await api.getEpisodes(activeUniverseId);

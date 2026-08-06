@@ -1,0 +1,16 @@
+{
+  "uuid": "4ec292fd-c4a0-4bb7-b21f-7aefd93eaf33",
+  "name": "Evelyn Stone",
+  "age": 17,
+  "gender": "Female",
+  "hair": "Brown",
+  "face": "Heart-Shaped",
+  "skin": "Fair",
+  "clothes": {
+    "type": "Uniform",
+    "color": "Blue"
+  },
+  "personality": "Curious, Adventurous",
+  "voice": "Soft Spoken",
+  "speaking_style": "Whispers"
+}

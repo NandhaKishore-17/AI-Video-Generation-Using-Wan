@@ -4,26 +4,46 @@ import { api } from '../services/api';
 import { RenderTask } from '../types';
 import { ListOrdered, CheckCircle2, Clock, Cpu, AlertTriangle } from 'lucide-react';
 
-export const RenderQueue: React.FC = () => {
+interface RenderQueueProps {
+  isGenerating?: boolean;
+  refreshTrigger?: number;
+}
+
+export const RenderQueue: React.FC<RenderQueueProps> = ({ isGenerating, refreshTrigger }) => {
   const [tasks, setTasks] = useState<RenderTask[]>([]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [refreshTrigger, isGenerating]);
 
   const loadData = async () => {
     const episodes = await api.getEpisodes();
-    const mockTasks: RenderTask[] = episodes.map((ep, idx) => ({
+    let mockTasks: RenderTask[] = episodes.map((ep) => ({
       id: `task-${ep.id}`,
       episode_id: ep.id,
       stage: ep.status === 'COMPLETED' ? 'DONE' : 'MEDIA_GEN',
       progress_percentage: ep.status === 'COMPLETED' ? 100 : 65,
-      current_step_details: ep.status === 'COMPLETED' ? 'Episode rendered & memory stored.' : 'Generating CogVideoX motion clips...',
+      current_step_details: ep.status === 'COMPLETED' ? 'Episode rendered & memory stored.' : 'Generating Wan video motion clips...',
       started_at: ep.created_at,
       completed_at: ep.updated_at
     }));
+
+    if (isGenerating) {
+      mockTasks = [
+        {
+          id: `task-active-${Date.now()}`,
+          episode_id: 'active',
+          stage: 'MEDIA_GEN',
+          progress_percentage: 45,
+          current_step_details: 'Qwen Screenplay breakdown -> FLUX Keyframes -> CogVideoX/Wan motion synthesis...',
+          started_at: new Date().toISOString()
+        },
+        ...mockTasks
+      ];
+    }
     setTasks(mockTasks);
   };
+
 
   return (
     <div className="space-y-8">

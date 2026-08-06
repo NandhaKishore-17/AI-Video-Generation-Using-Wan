@@ -10,6 +10,7 @@ interface NavbarProps {
   onSelectUniverse: (id: string) => void;
   sceneDuration: number;
   onSceneDurationChange: (sec: number) => void;
+  onLogoClick?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,13 +20,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeUniverseId,
   onSelectUniverse,
   sceneDuration,
-  onSceneDurationChange
+  onSceneDurationChange,
+  onLogoClick
 }) => {
   return (
     <header className="h-16 border-b border-slate-800/80 bg-[#0B0F19]/95 backdrop-blur-xl sticky top-0 z-50 px-6 flex items-center justify-between shadow-2xl">
       {/* Left Section: Logo, Title & Universe Switcher */}
       <div className="flex items-center space-x-6">
-        <div className="flex items-center space-x-3 cursor-pointer">
+        <div onClick={onLogoClick} className="flex items-center space-x-3 cursor-pointer group">
+
           <div className="p-2 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-600 to-pink-500 shadow-glow-cyan">
             <Film className="w-5 h-5 text-white" />
           </div>

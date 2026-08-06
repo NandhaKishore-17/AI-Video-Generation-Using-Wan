@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { api } from '../services/api';
 import { Character, Universe } from '../types';
-import { Users, Mic, Eye, UserPlus, Sparkles, X, CheckCircle2 } from 'lucide-react';
+import { Users, Mic, Eye, UserPlus, Sparkles, X, CheckCircle2, Trash2 } from 'lucide-react';
 
 interface CharacterManagerProps {
   activeUniverseId?: string;
@@ -43,6 +43,13 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
     }
   };
 
+  const handleDeleteCharacter = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this character profile?")) {
+      await api.deleteCharacter(id);
+      loadData();
+    }
+  };
+
   const handleAddCharacter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !personality || !appearancePrompt) return;
@@ -72,6 +79,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
       setSaving(false);
     }
   };
+
 
   return (
     <div className="space-y-8">
@@ -237,7 +245,15 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
                   {char.role}
                 </span>
               </div>
+              <button
+                onClick={() => handleDeleteCharacter(char.id)}
+                className="p-2 rounded-xl bg-slate-900 hover:bg-rose-900/80 text-slate-400 hover:text-rose-300 border border-slate-800 transition-colors"
+                title="Delete Character"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
+
 
             <p className="text-xs text-slate-300 italic">{char.personality}</p>
 

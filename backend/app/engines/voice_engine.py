@@ -25,7 +25,8 @@ class VoiceGenerationEngine:
     def __init__(self):
         self.provider = settings.VOICE_PROVIDER
         self.media_dir = Path(settings.MEDIA_OUTPUT_DIR)
-        self.audio_dir = Path("media/audio")
+        # Use absolute path so copyfile works regardless of CWD
+        self.audio_dir = Path(os.path.join(project_root, "media", "audio"))
         self.temp_dir = settings.TEMP_DIR
         self.media_dir.mkdir(parents=True, exist_ok=True)
         self.audio_dir.mkdir(parents=True, exist_ok=True)

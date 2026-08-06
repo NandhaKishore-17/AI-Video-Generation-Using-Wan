@@ -1,10 +1,13 @@
 import uvicorn
 import logging
+import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.generation import router as generation_router
 from app.api.video_generation import router as video_generation_router
+from app.api.endpoints import router as endpoints_router
 from app.engines.job_manager import job_manager
 # Import all models so Base.metadata is fully populated before create_all()
 from app.models import job as _job_model  # noqa: F401
@@ -23,9 +26,15 @@ app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 async def health_check():
     return {"status": "ok"}
 
-# Include generation routers
+# Include all API routers
 app.include_router(generation_router, prefix=settings.API_V1_STR)
 app.include_router(video_generation_router, prefix=settings.API_V1_STR)
+app.include_router(endpoints_router, prefix=settings.API_V1_STR)  # universes, episodes, analytics, etc.
+
+# Serve generated media files (videos, images, audio) at /media
+media_output_dir = settings.MEDIA_OUTPUT_DIR
+os.makedirs(media_output_dir, exist_ok=True)
+app.mount("/media", StaticFiles(directory=media_output_dir), name="media")
 
 # Create DB tables on startup
 @app.on_event("startup")

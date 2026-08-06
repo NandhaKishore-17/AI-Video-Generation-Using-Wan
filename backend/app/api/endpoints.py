@@ -182,6 +182,20 @@ def create_character(payload: CharacterCreate, db: Session = Depends(get_db)):
     return character
 
 
+@router.delete("/characters/{character_id}")
+def delete_character(character_id: str, db: Session = Depends(get_db)):
+    """
+    Deletes a character profile by ID.
+    """
+    char = db.query(Character).filter(Character.id == character_id).first()
+    if not char:
+        raise HTTPException(status_code=404, detail="Character not found")
+    db.delete(char)
+    db.commit()
+    return {"message": f"Character {character_id} deleted successfully."}
+
+
+
 # --- Timeline Events & Story Arcs API ---
 
 @router.post("/timeline_events", response_model=TimelineEventResponse, status_code=201)

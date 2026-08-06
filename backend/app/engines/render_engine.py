@@ -86,9 +86,16 @@ class FFmpegVideoRenderEngine:
             audio_rel = scene.get("audio_url") or scene.get("score_url")
             if audio_rel:
                 audio_filename = os.path.basename(audio_rel)
-                full_audio_path = os.path.join(self.media_dir, audio_filename)
-                if os.path.exists(full_audio_path):
-                    valid_audio_paths.append(full_audio_path)
+                # Try media_output dir first, then audio/ subdirectory
+                candidate_paths = [
+                    os.path.join(self.media_dir, audio_filename),
+                    os.path.join(self.media_dir, "audio", audio_filename),
+                    audio_rel,  # absolute path fallback
+                ]
+                for candidate in candidate_paths:
+                    if os.path.exists(candidate) and os.path.getsize(candidate) > 0:
+                        valid_audio_paths.append(candidate)
+                        break
 
             # Build combined master subtitle file
             srt_content = scene.get("subtitle_srt", "")
@@ -127,41 +134,60 @@ class FFmpegVideoRenderEngine:
                 clean_p = vp.replace("\\", "/")
                 f.write(f"file '{clean_p}'\n")
 
-        # Combine scene audio WAV files into a single master audio track
-        has_audio = self._combine_wav_files(valid_audio_paths, combined_audio_path)
+        # Collect score/music paths if available
+        valid_score_paths = []
+        for scene in scene_assets:
+            score_rel = scene.get("score_url")
+            if score_rel:
+                score_filename = os.path.basename(score_rel)
+                candidate_paths = [
+                    os.path.join(self.media_dir, score_filename),
+                    os.path.join(self.media_dir, "audio", score_filename),
+                    score_rel,
+                ]
+                for candidate in candidate_paths:
+                    if os.path.exists(candidate) and os.path.getsize(candidate) > 0:
+                        valid_score_paths.append(candidate)
+                        break
+
+        combined_music_path = os.path.join(self.temp_dir, f"music_{episode_id}.wav")
+        has_music = self._combine_wav_files(valid_score_paths, combined_music_path) if valid_score_paths else False
 
         ffmpeg_exe = self._get_ffmpeg_exe()
 
-        # Execute FFmpeg Command to Concatenate Video + Merge Character Voice Audio Track
+        # Execute FFmpeg Command to Concatenate Video + Merge Voice & Score Audio Tracks + Burn Subtitles
         try:
-            if has_audio and os.path.exists(combined_audio_path):
-                cmd = [
-                    ffmpeg_exe, "-y",
-                    "-f", "concat",
-                    "-safe", "0",
-                    "-i", concat_list_path,
-                    "-i", combined_audio_path,
+            cmd = [ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", concat_list_path]
+            
+            if has_audio and has_music and os.path.exists(combined_audio_path) and os.path.exists(combined_music_path):
+                cmd.extend(["-i", combined_audio_path, "-i", combined_music_path])
+                cmd.extend([
+                    "-filter_complex",
+                    "[1:a]aformat=sample_rates=44100:channel_layouts=stereo[v];[2:a]volume=0.25,aformat=sample_rates=44100:channel_layouts=stereo[m];[v][m]amix=inputs=2:duration=longest[aout]",
                     "-map", "0:v:0",
-                    "-map", "1:a:0",
-                    "-c:v", "libx264",
-                    "-pix_fmt", "yuv420p",
-                    "-c:a", "aac",
-                    "-b:a", "192k",
-                    "-shortest",
-                    output_path
-                ]
+                    "-map", "[aout]"
+                ])
+            elif has_audio and os.path.exists(combined_audio_path):
+                cmd.extend(["-i", combined_audio_path, "-map", "0:v:0", "-map", "1:a:0"])
+            elif has_music and os.path.exists(combined_music_path):
+                cmd.extend(["-i", combined_music_path, "-map", "0:v:0", "-map", "1:a:0"])
             else:
-                cmd = [
-                    ffmpeg_exe, "-y",
-                    "-f", "concat",
-                    "-safe", "0",
-                    "-i", concat_list_path,
-                    "-c:v", "libx264",
-                    "-pix_fmt", "yuv420p",
-                    "-an",
-                    output_path
-                ]
+                cmd.extend(["-map", "0:v:0", "-an"])
 
+            if os.path.exists(srt_combined_path) and os.path.getsize(srt_combined_path) > 0:
+                clean_srt = srt_combined_path.replace("\\", "/").replace(":", "\\:")
+                cmd.extend(["-vf", f"subtitles='{clean_srt}'"])
+
+            cmd.extend([
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-shortest",
+                output_path
+            ])
+
+            logger.info("Executing render_engine FFmpeg command:\n%s", " ".join(cmd))
             subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info(f"FFmpeg render successful with audio: {output_path}")
             return f"/media/{output_filename}"

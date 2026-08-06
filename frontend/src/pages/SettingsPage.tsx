@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { Settings, Cpu, Save, Sliders, CheckCircle2, Cloud, HardDrive, Key } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const [gpuMode, setGpuMode] = useState('LOCAL_GPU');
-  const [llmModel, setLlmModel] = useState('Qwen/Qwen2.5-72B-Instruct');
-  const [imageModel, setImageModel] = useState('black-forest-labs/FLUX.1-schnell');
-  const [videoModel, setVideoModel] = useState('Wan-AI/Wan2.1-T2V-1.3B (CogVideoX)');
-  const [voiceModel, setVoiceModel] = useState('F5-TTS Open-Source Zero-Shot (GPU/CPU)');
-  const [hfToken, setHfToken] = useState('');
+  const [gpuMode, setGpuMode] = useState(() => localStorage.getItem('gpu_mode') || 'LOCAL_GPU');
+  const [llmModel, setLlmModel] = useState(() => localStorage.getItem('llm_model') || 'Qwen/Qwen2.5-72B-Instruct');
+  const [imageModel, setImageModel] = useState(() => localStorage.getItem('image_model') || 'black-forest-labs/FLUX.1-schnell');
+  const [videoModel, setVideoModel] = useState(() => localStorage.getItem('video_model') || 'Wan-AI/Wan2.1-T2V-1.3B (CogVideoX)');
+  const [voiceModel, setVoiceModel] = useState(() => localStorage.getItem('voice_model') || 'F5-TTS Open-Source Zero-Shot (GPU/CPU)');
+  const [hfToken, setHfToken] = useState(() => localStorage.getItem('hf_token') || '');
   const [saved, setSaved] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    localStorage.setItem('gpu_mode', gpuMode);
+    localStorage.setItem('llm_model', llmModel);
+    localStorage.setItem('image_model', imageModel);
+    localStorage.setItem('video_model', videoModel);
+    localStorage.setItem('voice_model', voiceModel);
+    localStorage.setItem('hf_token', hfToken);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
+
 
   return (
     <div className="space-y-8">

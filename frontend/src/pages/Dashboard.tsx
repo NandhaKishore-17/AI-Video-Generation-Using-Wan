@@ -11,9 +11,10 @@ interface DashboardProps {
   onGenerateClick: () => void;
   isGenerating: boolean;
   activeUniverseId?: string;
+  refreshTrigger?: number;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerateClick, isGenerating, activeUniverseId }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerateClick, isGenerating, activeUniverseId, refreshTrigger }) => {
   const [universes, setUniverses] = useState<Universe[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -21,7 +22,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
 
   useEffect(() => {
     loadData();
-  }, [activeUniverseId]);
+  }, [activeUniverseId, refreshTrigger]);
+
 
   const loadData = async () => {
     const uData = await api.getUniverses();

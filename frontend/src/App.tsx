@@ -13,8 +13,10 @@ import { RenderQueue } from './pages/RenderQueue';
 import { SchedulerPage } from './pages/SchedulerPage';
 import { Analytics } from './pages/Analytics';
 import { SettingsPage } from './pages/SettingsPage';
+import { EpisodeModal } from './components/EpisodeModal';
 import { api } from './services/api';
-import { Universe } from './types';
+import { Universe, Episode } from './types';
+import { Sparkles, CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activePage, setActivePage] = useState<PageId>('dashboard');
@@ -22,6 +24,18 @@ export const App: React.FC = () => {
   const [universes, setUniverses] = useState<Universe[]>([]);
   const [activeUniverseId, setActiveUniverseId] = useState<string>(() => localStorage.getItem('activeUniverseId') || '');
   const [sceneDuration, setSceneDuration] = useState<number>(8);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [selectedEpForModal, setSelectedEpForModal] = useState<Episode | null>(null);
+
+  // Toast Notifications
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
 
   useEffect(() => {
     loadUniverses();
@@ -42,15 +56,24 @@ export const App: React.FC = () => {
   const handleSelectUniverse = (id: string) => {
     setActiveUniverseId(id);
     localStorage.setItem('activeUniverseId', id);
+    setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleGenerateEpisode = async (customSec?: number) => {
+  const handleGenerateEpisode = async (customSec?: number, customPrompt?: string) => {
     setIsGenerating(true);
+    showToast('Autonomous Engine: Writing Screenplay & Rendering Video Clips...', 'info');
     try {
       const uId = activeUniverseId || (universes.length > 0 ? universes[0].id : 'u-cyber-99');
-      await api.generateEpisode(uId, 'Uncover hidden core protocol secret', customSec || sceneDuration);
-    } catch (err) {
+      const newEp = await api.generateEpisode(uId, customPrompt || 'Uncover hidden core protocol secret', customSec || sceneDuration);
+      
+      await loadUniverses();
+      setRefreshTrigger(prev => prev + 1);
+      
+      showToast(`✨ Generated ${newEp.title}! Click feed card to watch.`, 'success');
+      setSelectedEpForModal(newEp);
+    } catch (err: any) {
       console.error(err);
+      showToast(`Generation Error: ${err?.message || 'Failed to generate episode'}`, 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -65,6 +88,7 @@ export const App: React.FC = () => {
             onGenerateClick={handleGenerateEpisode}
             isGenerating={isGenerating}
             activeUniverseId={activeUniverseId}
+            refreshTrigger={refreshTrigger}
           />
         );
       case 'universes':
@@ -75,6 +99,10 @@ export const App: React.FC = () => {
               handleSelectUniverse(id);
               loadUniverses();
             }}
+            onUniversesChanged={() => {
+              loadUniverses();
+              setRefreshTrigger(prev => prev + 1);
+            }}
           />
         );
       case 'characters':
@@ -82,17 +110,17 @@ export const App: React.FC = () => {
       case 'timeline':
         return <Timeline activeUniverseId={activeUniverseId} />;
       case 'episodes':
-        return <EpisodeLibrary activeUniverseId={activeUniverseId} />;
+        return <EpisodeLibrary activeUniverseId={activeUniverseId} refreshTrigger={refreshTrigger} />;
       case 'memory':
         return <MemoryExplorer activeUniverseId={activeUniverseId} />;
       case 'assets':
         return <AssetLibrary />;
       case 'videos':
-        return <VideoLibrary activeUniverseId={activeUniverseId} />;
+        return <VideoLibrary activeUniverseId={activeUniverseId} refreshTrigger={refreshTrigger} />;
       case 'render_queue':
-        return <RenderQueue />;
+        return <RenderQueue isGenerating={isGenerating} refreshTrigger={refreshTrigger} />;
       case 'scheduler':
-        return <SchedulerPage />;
+        return <SchedulerPage onTriggerGenerate={handleGenerateEpisode} refreshTrigger={refreshTrigger} />;
       case 'analytics':
         return <Analytics />;
       case 'settings':
@@ -104,6 +132,7 @@ export const App: React.FC = () => {
             onGenerateClick={handleGenerateEpisode}
             isGenerating={isGenerating}
             activeUniverseId={activeUniverseId}
+            refreshTrigger={refreshTrigger}
           />
         );
     }
@@ -111,6 +140,24 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-black">
+      {/* Toast Feedback Notification Banner */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-5 py-3.5 rounded-2xl bg-slate-900/95 border border-cyan-500/80 shadow-2xl backdrop-blur-xl animate-fadeIn">
+          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+          {toast.type === 'info' && <Sparkles className="w-5 h-5 text-cyan-400 animate-spin shrink-0" />}
+          {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+          <span className="text-xs font-mono font-bold text-white tracking-wide">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="p-1 rounded-lg text-slate-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Episode Detail Inspector Modal */}
+      {selectedEpForModal && (
+        <EpisodeModal episode={selectedEpForModal} onClose={() => setSelectedEpForModal(null)} />
+      )}
+
       {/* Top Navbar with Story Universe Switcher */}
       <Navbar
         onGenerateClick={handleGenerateEpisode}
@@ -120,6 +167,7 @@ export const App: React.FC = () => {
         onSelectUniverse={handleSelectUniverse}
         sceneDuration={sceneDuration}
         onSceneDurationChange={setSceneDuration}
+        onLogoClick={() => setActivePage('dashboard')}
       />
 
       {/* Main Layout Body */}

@@ -33,9 +33,11 @@ class EdgeTTSBackend(BaseTTSBackend):
     ) -> bool:
         try:
             import edge_tts
+            clean_voice = voice_id if (voice_id and "Neural" in voice_id) else "en-US-ChristopherNeural"
+            logger.info(f"Generating EdgeTTS speech with model/voice: '{clean_voice}'")
             communicate = edge_tts.Communicate(
                 text=text,
-                voice=voice_id,
+                voice=clean_voice,
                 pitch=pitch,
                 rate=rate,
                 volume=volume
@@ -50,7 +52,7 @@ class EdgeTTSBackend(BaseTTSBackend):
 
             return success
         except Exception as e:
-            logger.warning(f"EdgeTTS generation failed for voice '{voice_id}': {e}. Falling back...")
+            logger.warning(f"EdgeTTS generation failed for voice '{voice_id}': {e}. Exception details: {e}")
             return False
 
     def _convert_mp3_to_wav(self, mp3_path: str, wav_path: str) -> bool:
@@ -401,8 +403,8 @@ class TTSService:
         current_time = 0.5
 
         for idx, item in enumerate(dialogue_list, 1):
-            speaker = item.get("speaker", "Narrator")
-            line = item.get("line", "").strip()
+            speaker = str(item.get("speaker") or "Narrator")
+            line = str(item.get("line") or "").strip()
 
             if not line:
                 continue

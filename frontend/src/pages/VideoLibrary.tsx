@@ -7,16 +7,18 @@ import { Video, Download, Play, Monitor, Smartphone, CheckCircle2 } from 'lucide
 
 interface VideoLibraryProps {
   activeUniverseId?: string;
+  refreshTrigger?: number;
 }
 
-export const VideoLibrary: React.FC<VideoLibraryProps> = ({ activeUniverseId }) => {
+export const VideoLibrary: React.FC<VideoLibraryProps> = ({ activeUniverseId, refreshTrigger }) => {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<Episode | null>(null);
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
 
   useEffect(() => {
     loadData();
-  }, [activeUniverseId]);
+  }, [activeUniverseId, refreshTrigger]);
+
 
   const loadData = async () => {
     const data = await api.getEpisodes(activeUniverseId);

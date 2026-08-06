@@ -4,7 +4,12 @@ import { api } from '../services/api';
 import { SchedulerStatus } from '../types';
 import { Calendar, Play, Square, Clock, Zap, CheckCircle2 } from 'lucide-react';
 
-export const SchedulerPage: React.FC = () => {
+interface SchedulerPageProps {
+  onTriggerGenerate?: (sec?: number, prompt?: string) => void;
+  refreshTrigger?: number;
+}
+
+export const SchedulerPage: React.FC<SchedulerPageProps> = ({ onTriggerGenerate, refreshTrigger }) => {
   const [status, setStatus] = useState<SchedulerStatus | null>(null);
   const [intervalMins, setIntervalMins] = useState(60);
   const [loading, setLoading] = useState(false);
@@ -19,7 +24,8 @@ export const SchedulerPage: React.FC = () => {
 
   useEffect(() => {
     loadStatus();
-  }, []);
+  }, [refreshTrigger]);
+
 
   useEffect(() => {
     if (!status?.next_run || !status?.is_running) {
@@ -77,7 +83,11 @@ export const SchedulerPage: React.FC = () => {
     setTriggering(true);
     setTriggerMessage(null);
     try {
-      const res = await api.triggerSchedulerNow();
+      if (onTriggerGenerate) {
+        await onTriggerGenerate(8, "Autonomous Scheduler Trigger Release");
+      } else {
+        await api.triggerSchedulerNow();
+      }
       setTriggerMessage(`Successfully triggered story script auto-generation for active universes!`);
       await loadStatus();
     } catch (e: any) {
@@ -86,6 +96,7 @@ export const SchedulerPage: React.FC = () => {
       setTriggering(false);
     }
   };
+
 
   const formatLocalDate = (isoStr?: string) => {
     if (!isoStr) return null;

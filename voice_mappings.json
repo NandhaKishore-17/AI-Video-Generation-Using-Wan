@@ -42,5 +42,27 @@
     "rate": "-1%",
     "name": "Steffan",
     "description": "Warm natural conversational male voice"
+  },
+  "NARRATOR": {
+    "character": "NARRATOR",
+    "language": "en",
+    "gender": "male",
+    "archetype": "british_male",
+    "voice_id": "en-GB-RyanNeural",
+    "pitch": "-1Hz",
+    "rate": "-2%",
+    "name": "Ryan (British)",
+    "description": "Polished British cinematic male voice"
+  },
+  "LUNA": {
+    "character": "LUNA",
+    "language": "en",
+    "gender": "male",
+    "archetype": "calm_male",
+    "voice_id": "en-US-EricNeural",
+    "pitch": "+0Hz",
+    "rate": "-2%",
+    "name": "Eric",
+    "description": "Calm and articulate professional male voice"
   }
 }

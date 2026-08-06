@@ -1,0 +1,4 @@
+file 'C:/Users/mrgnk/OneDrive/Desktop/AI-Video-Generation-Using-Wan/media_output/video_d4b96230-be1b-45fd-9273-543b10360253.mp4'
+file 'C:/Users/mrgnk/OneDrive/Desktop/AI-Video-Generation-Using-Wan/media_output/video_70a5ca62-d546-4f7b-b273-bf02bafb1373.mp4'
+file 'C:/Users/mrgnk/OneDrive/Desktop/AI-Video-Generation-Using-Wan/media_output/video_c6452ed1-fa4b-436a-a2ae-7d7157dc87eb.mp4'
+file 'C:/Users/mrgnk/OneDrive/Desktop/AI-Video-Generation-Using-Wan/media_output/video_268e10ec-c407-4e24-b90a-71bf168296c2.mp4'
