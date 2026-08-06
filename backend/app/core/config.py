@@ -25,14 +25,15 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # Open Source AI Model Endpoints (Supports local Ollama, vLLM, ComfyUI, diffusers, EdgeTTS, Piper)
-    LLM_PROVIDER: str = "qwen"  # qwen, ollama, openai-compatible, mock
-    LLM_API_BASE: str = "http://localhost:11434/v1"
-    LLM_MODEL: str = "qwen2.5:14b"
+    LLM_PROVIDER: str = "ollama"  # ollama, qwen, openai-compatible, mock
+    LLM_API_BASE: str = "http://localhost:11434"
+    LLM_MODEL: str = "llama3.2:3b"
 
     # Ollama settings
+    OLLAMA_URL: str = "http://localhost:11434"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.2:3b"
-    OLLAMA_TIMEOUT: int = 120  # seconds per request
+    OLLAMA_TIMEOUT: int = 600  # seconds per request
     
     IMAGE_PROVIDER: str = "flux"  # flux, sdxl, diffusers, mock
     IMAGE_API_BASE: str = "http://localhost:7860"

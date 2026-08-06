@@ -32,6 +32,8 @@ class Wan22Wrapper:
 
         logger.info("Initializing Wan22Wrapper with model_path=%s", self.model_path)
         try:
+            if not self.model_path.exists() and "Wan-AI/" not in str(self.model_path):
+                raise FileNotFoundError(f"Model path '{self.model_path}' does not exist.")
             wan_pipeline.model_path = self.model_path
             self._initialized = True
             logger.info("Wan22Wrapper initialized; model loading will be deferred to the generation step.")
@@ -39,6 +41,7 @@ class Wan22Wrapper:
             tb = traceback.format_exc()
             logger.error("Wan22Wrapper initialization caught error:\n%s", tb)
             self._initialized = False
+            raise
 
     async def generate_video(
         self,

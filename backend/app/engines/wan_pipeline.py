@@ -14,7 +14,10 @@ import traceback
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
 
 from app.core.config import settings
 
@@ -82,12 +85,10 @@ class WanLocalPipeline:
             logger.info("Wan 2.2 model already loaded into memory, skipping.")
             return
 
-        # ── Step 2: GPU/CPU detection ───────────────────────────────────────
-        logger.info("[STEP 2/9] GPU/CPU detection...")
-        cuda_available = torch.cuda.is_available()
-        if not cuda_available:
-            logger.warning("CUDA is not available; skipping real Wan2.2 model loading and using the fallback renderer.")
-            raise WanModelLoadingError("CUDA is not available for Wan2.2 inference.")
+        cuda_available = torch.cuda.is_available() if torch is not None else False
+        if torch is None or not cuda_available:
+            logger.warning("PyTorch/CUDA is not available; skipping real Wan2.2 model loading and using the fallback renderer.")
+            raise WanModelLoadingError("PyTorch/CUDA is not available for Wan2.2 inference.")
         # Also check if this is a CPU-only torch build
         torch_cuda_version = getattr(torch.version, 'cuda', None)
         logger.info("  - PyTorch Version : %s", torch.__version__)

@@ -32,62 +32,98 @@ class OllamaClient:
         model: Optional[str] = None,
         timeout: Optional[int] = None,
     ):
-        self.base_url = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
-        self.model = model or settings.OLLAMA_MODEL
+        self._base_url = base_url
+        self._model = model
         self.timeout = timeout or settings.OLLAMA_TIMEOUT
 
-    def generate(self, prompt: str, system: Optional[str] = None) -> str:
-        """Send *prompt* to Ollama and return the full response string.
+    @property
+    def base_url(self) -> str:
+        url = self._base_url or getattr(settings, "OLLAMA_URL", None) or settings.OLLAMA_BASE_URL
+        return url.rstrip("/")
 
-        Retries up to _MAX_RETRIES times on connection / timeout errors.
-        Raises OllamaError on permanent failure.
+    @property
+    def model(self) -> str:
+        return self._model or getattr(settings, "OLLAMA_MODEL", settings.OLLAMA_MODEL)
+
+    def generate(self, prompt: str, system: Optional[str] = None) -> str:
+        """Send prompt to Ollama with streaming enabled to prevent read timeouts.
+
+        Logs request start time, first token arrival time (TTFT), and total generation time.
+        Retries up to _MAX_RETRIES ONLY for connection errors.
+        Does NOT retry on read timeouts or once generation starts.
         """
         url = f"{self.base_url}/api/generate"
         payload: dict = {
             "model": self.model,
             "prompt": prompt,
-            "stream": False,
+            "stream": True,
         }
         if system:
             payload["system"] = system
 
+        timeout_val = self.timeout or getattr(settings, "OLLAMA_TIMEOUT", 600)
         last_error: Optional[Exception] = None
+
         for attempt in range(1, _MAX_RETRIES + 1):
+            start_time = time.time()
+            first_token_time: Optional[float] = None
+            response_chunks = []
+
+            start_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time))
+            print(f"Ollama request started at: {start_str} (attempt {attempt}/{_MAX_RETRIES}, model={self.model})")
+            logger.info("Ollama request started at: %s (attempt %d/%d, model=%s)", start_str, attempt, _MAX_RETRIES, self.model)
+
             try:
-                logger.info(
-                    "Ollama request attempt %d/%d (model=%s)",
-                    attempt,
-                    _MAX_RETRIES,
-                    self.model,
-                )
-                resp = requests.post(url, json=payload, timeout=self.timeout)
-                resp.raise_for_status()
-                data = resp.json()
-                response_text: str = data.get("response", "")
-                if not response_text:
+                with requests.post(url, json=payload, stream=True, timeout=timeout_val) as resp:
+                    resp.raise_for_status()
+                    for line in resp.iter_lines(decode_unicode=True):
+                        if not line:
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+
+                        text_part = chunk.get("response", "")
+                        if text_part:
+                            if first_token_time is None:
+                                first_token_time = time.time()
+                                ttft = first_token_time - start_time
+                                print(f"First token received in {ttft:.2f}s")
+                                logger.info("First token received in %.2fs", ttft)
+                            response_chunks.append(text_part)
+
+                        if chunk.get("done", False):
+                            break
+
+                full_text = "".join(response_chunks).strip()
+                if not full_text:
                     raise OllamaError("Ollama returned an empty response")
-                logger.info("Ollama responded successfully")
-                return response_text
+
+                total_time = time.time() - start_time
+                print(f"Total generation time: {total_time:.2f}s")
+                logger.info("Total generation time: %.2fs", total_time)
+                return full_text
+
             except requests.exceptions.ConnectionError as exc:
                 last_error = exc
                 logger.warning("Ollama connection error (attempt %d): %s", attempt, exc)
+                if attempt < _MAX_RETRIES:
+                    wait = _RETRY_BACKOFF_BASE ** attempt
+                    logger.info("Retrying connection in %ds ...", wait)
+                    time.sleep(wait)
             except requests.exceptions.Timeout as exc:
-                last_error = exc
-                logger.warning("Ollama timeout (attempt %d)", attempt)
+                total_time = time.time() - start_time
+                raise OllamaError(f"Ollama read timeout after {total_time:.2f}s (timeout={timeout_val}s)") from exc
             except requests.exceptions.HTTPError as exc:
-                # Non-retryable HTTP errors (e.g. 404 – model not found)
                 raise OllamaError(f"Ollama HTTP error: {exc}") from exc
-            except (KeyError, ValueError) as exc:
-                raise OllamaError(f"Unexpected Ollama response format: {exc}") from exc
-
-            # Exponential back-off before retry
-            if attempt < _MAX_RETRIES:
-                wait = _RETRY_BACKOFF_BASE ** attempt
-                logger.info("Retrying in %ds …", wait)
-                time.sleep(wait)
+            except OllamaError:
+                raise
+            except Exception as exc:
+                raise OllamaError(f"Ollama error: {exc}") from exc
 
         raise OllamaError(
-            f"Ollama unreachable after {_MAX_RETRIES} attempts: {last_error}"
+            f"Ollama connection failed after {_MAX_RETRIES} attempts: {last_error}"
         )
 
 

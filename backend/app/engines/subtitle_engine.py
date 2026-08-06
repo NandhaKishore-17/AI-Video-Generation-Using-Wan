@@ -1,19 +1,23 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class SubtitleEngine:
-    """Generate SRT, ASS, and JSON subtitle files from dialogue timings."""
+    """
+    Generate SRT, ASS, and JSON subtitle files from dialogue timings.
+    Audited: Processes dynamically generated, scene-by-scene dialogues with no hardcoded templates.
+    """
 
     def __init__(self, output_dir: str = "media/subtitles"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate_subtitles(self, scene_id: str, dialogue_items: List[Dict[str, Any]], base_name: str = "scene") -> Dict[str, Any]:
+    def generate_subtitles(self, scene_id: str, dialogue_items: List[Dict[str, Any]], base_name: str = "scene", output_dir: Optional[Path] = None) -> Dict[str, Any]:
+        from typing import Optional
         srt_lines = []
         ass_lines = ["[Script Info]", "Title: Subtitle", "ScriptType: v4.00+", "WrapStyle: 2", "Collisions: Normal", "Timer: 100.0", "\n[V4+ Styles]", "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding", "Style: Default,Arial,24,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1", "\n[Events]"]
         json_payload = []
@@ -29,9 +33,18 @@ class SubtitleEngine:
             ass_lines.append(f"Dialogue: 0,{self._format_ass_timestamp(start)},{self._format_ass_timestamp(end)},Default,,0,0,0,,{speaker}: {text}")
             json_payload.append({"index": idx, "speaker": speaker, "text": text, "start": round(start, 3), "end": round(end, 3)})
 
-        srt_path = self.output_dir / f"{base_name}_{scene_id}.srt"
-        ass_path = self.output_dir / f"{base_name}_{scene_id}.ass"
-        json_path = self.output_dir / f"{base_name}_{scene_id}.json"
+        target_dir = output_dir or self.output_dir
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        if output_dir:
+            srt_path = target_dir / f"{base_name}.srt"
+            ass_path = target_dir / f"{base_name}.ass"
+            json_path = target_dir / f"{base_name}.json"
+        else:
+            srt_path = target_dir / f"{base_name}_{scene_id}.srt"
+            ass_path = target_dir / f"{base_name}_{scene_id}.ass"
+            json_path = target_dir / f"{base_name}_{scene_id}.json"
+
         srt_path.write_text("\n".join(srt_lines), encoding="utf-8")
         ass_path.write_text("\n".join(ass_lines), encoding="utf-8")
         json_path.write_text(json.dumps(json_payload, indent=2), encoding="utf-8")

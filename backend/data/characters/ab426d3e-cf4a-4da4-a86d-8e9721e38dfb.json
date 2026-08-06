@@ -1,0 +1,13 @@
+{
+  "uuid": "ab426d3e-cf4a-4da4-a86d-8e9721e38dfb",
+  "name": "Professor Lyra",
+  "age": 42,
+  "gender": "female",
+  "hair": "silver",
+  "face": "wise",
+  "skin": "light",
+  "clothes": "deep purple robes",
+  "personality": "wise",
+  "voice": "calm",
+  "speaking_style": "measured"
+}

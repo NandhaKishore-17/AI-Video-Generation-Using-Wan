@@ -1,7 +1,7 @@
 import logging
 import wave
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from app.core.config import settings
 
@@ -37,14 +37,25 @@ class MusicGenerationEngine:
         self._generate_synthetic_cinematic_score(filepath, mood, duration_seconds)
         return f"/media/{filename}"
 
-    def generate_music(self, scene: Dict[str, Any], duration_seconds: float = 6.0) -> Dict[str, Any]:
+    def generate_music(self, scene: Dict[str, Any], duration_seconds: float = 6.0, job_id: Optional[str] = None) -> Dict[str, Any]:
+        from typing import Optional
         raw_emotion = scene.get("emotion") or "neutral"
         if isinstance(raw_emotion, list) and raw_emotion:
             raw_emotion = raw_emotion[0]
         emotion = str(raw_emotion).lower()
         mood = self.mood_map.get(emotion, "Fantasy")
         prompt = f"{mood} cinematic background music, ambient textures, emotional, high quality"
-        path = self.media_dir / f"music_{scene.get('scene_number', 1):02d}.wav"
+        
+        scene_num = scene.get('scene_number', 1)
+        if job_id:
+            from app.core.config import BASE_DIR
+            job_dir_name = job_id[:7] if len(job_id) > 7 else job_id
+            job_audio_dir = Path(BASE_DIR) / "media" / "jobs" / job_dir_name / "audio"
+            job_audio_dir.mkdir(parents=True, exist_ok=True)
+            path = job_audio_dir / f"music_scene_{scene_num:03d}.wav"
+        else:
+            path = self.media_dir / f"music_{scene_num:02d}.wav"
+            
         self._generate_synthetic_cinematic_score(path, mood, duration_seconds)
         return {"prompt": prompt, "path": str(path), "mood": mood}
 

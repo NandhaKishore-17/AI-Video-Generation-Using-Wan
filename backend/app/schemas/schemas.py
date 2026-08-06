@@ -38,6 +38,16 @@ class CharacterCreate(BaseModel):
     voice_speed: Optional[float] = 1.0
     bio: Optional[str] = None
 
+class CharacterUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    personality: Optional[str] = None
+    appearance_prompt: Optional[str] = None
+    voice_actor_preset: Optional[str] = None
+    voice_pitch: Optional[float] = None
+    voice_speed: Optional[float] = None
+    bio: Optional[str] = None
+
 class CharacterResponse(BaseModel):
     id: str
     universe_id: str

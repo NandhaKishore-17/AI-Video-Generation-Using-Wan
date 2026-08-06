@@ -13,13 +13,15 @@ from app.engines.voice_engine import voice_engine
 from app.engines.music_engine import music_engine
 from app.engines.memory_engine import memory_engine
 from app.engines.render_engine import render_engine
+from app.engines.dialogue_engine import dialogue_engine
+from app.engines.character_memory import character_manager
 
 logger = logging.getLogger("episode_generator")
 
 class EpisodeGeneratorModule:
     """
     Core Module 4 & 10: Autonomous Episode Generator & Video Renderer.
-    Runs full autonomous pipeline: Screenplay -> Scene Breakdown -> Images -> Videos -> Voice & SRT -> Music -> Render MP4 -> Update Memory -> Increment Universe State.
+    Runs full autonomous pipeline: Screenplay -> Scene Breakdown -> Dialogue Generation -> Images -> Videos -> Voice & SRT -> Music -> Render MP4 -> Update Memory -> Increment Universe State.
     """
 
     async def generate_episode_pipeline(
@@ -71,18 +73,48 @@ class EpisodeGeneratorModule:
             episode.screenplay = screenplay_data
             db.commit()
 
+            print(f"Final story passed to voice and video generators:\n{json.dumps(screenplay_data, indent=2)}")
+            logger.info(f"Final story passed to voice and video generators:\n{json.dumps(screenplay_data, indent=2)}")
+
             # 4. Generate Scenes, Keyframe Images, Motion Video Clips, Audio & Subtitles
             scenes_data = screenplay_data.get("scenes", [])
             total_duration = 0.0
             scene_assets_list = []
+            accumulated_dialogue = []
+
+            # Prepare characters format for dialogue engine
+            chars_for_dialogue = []
+            for c in brief["characters"]:
+                chars_for_dialogue.append({
+                    "id": c.get("id"),
+                    "name": c.get("name"),
+                    "role": c.get("role"),
+                    "personality": c.get("personality")
+                })
 
             for idx, scene_info in enumerate(scenes_data, 1):
                 render_task.stage = "MEDIA_GEN"
                 render_task.progress_percentage = 20 + int((idx / len(scenes_data)) * 50)
-                render_task.current_step_details = f"Processing Scene {idx}/{len(scenes_data)}: Keyframes, Video, TTS, Music..."
+                render_task.current_step_details = f"Processing Scene {idx}/{len(scenes_data)}: Dialogue, Keyframes, Video, TTS, Music..."
                 db.commit()
 
                 target_duration = float(scene_duration_seconds) if scene_duration_seconds else scene_info.get("duration_seconds", 8.0)
+
+                # Generate dialogue scene-by-scene dynamically using dialogue generation service
+                dialogue_res = await dialogue_engine.generate_dialogue_for_scene(
+                    scene_number=idx,
+                    scene_title=scene_info.get("location", f"Scene {idx}"),
+                    scene_description=scene_info.get("visual_description", ""),
+                    characters=chars_for_dialogue,
+                    scene_emotion=scene_info.get("emotion", "neutral") or "neutral",
+                    previous_scene_summary="" if idx == 1 else scenes_data[idx - 2].get("visual_description", ""),
+                    episode_objective=episode.logline,
+                    universe_id=universe_id,
+                    previous_dialogues=accumulated_dialogue,
+                    episode_number=episode.episode_number
+                )
+                dialogue_script = dialogue_res.get("dialogue", [])
+                accumulated_dialogue.extend(dialogue_script)
 
                 scene_obj = Scene(
                     episode_id=episode.id,
@@ -92,7 +124,7 @@ class EpisodeGeneratorModule:
                     visual_description=scene_info.get("visual_description", ""),
                     image_prompt=scene_info.get("image_prompt", ""),
                     video_motion_prompt=scene_info.get("video_motion_prompt", ""),
-                    dialogue_script=scene_info.get("dialogue", []),
+                    dialogue_script=dialogue_script,
                     duration_seconds=target_duration
                 )
                 db.add(scene_obj)
@@ -100,7 +132,7 @@ class EpisodeGeneratorModule:
                 db.refresh(scene_obj)
 
                 # Character Visual Anchor String
-                char_anchors = ", ".join([c["appearance_prompt"] for c in brief["characters"]])
+                char_anchors = ", ".join([c.get("appearance_prompt", "") for c in brief["characters"] if c.get("appearance_prompt")])
 
                 # Generate Image Keyframe (FLUX / SDXL)
                 img_url = await image_engine.generate_scene_image(
@@ -182,6 +214,15 @@ class EpisodeGeneratorModule:
                 vector_id=mem_id
             )
             db.add(story_mem)
+
+            # Store general memories to character manager
+            for c in brief["characters"]:
+                character_manager.add_memory(
+                    character_name=c["name"],
+                    universe_id=universe_id,
+                    episode_num=episode.episode_number,
+                    content=f"Successfully finished Episode {episode.episode_number} ({episode.title}): {episode.logline}."
+                )
 
             # Update Universe state
             universe = db.query(Universe).filter(Universe.id == universe_id).first()

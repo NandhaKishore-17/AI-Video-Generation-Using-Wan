@@ -10,4 +10,12 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Style: Default,Arial,24,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
 
 [Events]
-Dialogue: 0,0.00,2.00,Default,,0,0,0,,Narrator: 
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Caelum Cross: Now that we completed neo-sektor handle pulse... Telemetry confirms. I can't ignore the feeling that cross is changing us.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Dante Shadow: Some secrets want to be found. I know. But if we cyberpunk, it will justify our sacrifice for this.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Caelum Cross: Let's get this done. For those we left behind.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Caelum Cross: Telemetry confirms. This area, especially station, holds too many ghosts.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Dante Shadow: Some secrets want to be found. Stay strong. Regarding Let's get this done earlier... Even under the pressure of mystery, we stand together.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Caelum Cross: The burden is heavy, but we continue.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Caelum Cross: Telemetry confirms. Regarding Now that we completed earlier... We are risking everything for the cyberpunk.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Dante Shadow: Some secrets want to be found. We have no other choice. The recovery of cyberpunk is our duty.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Caelum Cross: No turning back now. Activating the core.

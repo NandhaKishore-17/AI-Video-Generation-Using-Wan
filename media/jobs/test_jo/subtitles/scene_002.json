@@ -1,0 +1,23 @@
+[
+  {
+    "index": 1,
+    "speaker": "Vesper Apex",
+    "text": "The indicators show something is hidden. Our scanner is locking onto triggers.",
+    "start": 0.0,
+    "end": 2.0
+  },
+  {
+    "index": 2,
+    "speaker": "Ethan Sterling",
+    "text": "Some secrets want to be found. Caution. Regarding Some secrets want to earlier... The levels of mystery suggest high risk.",
+    "start": 2.0,
+    "end": 4.0
+  },
+  {
+    "index": 3,
+    "speaker": "Vesper Apex",
+    "text": "Exactly. Secure the data stream.",
+    "start": 4.0,
+    "end": 6.0
+  }
+]

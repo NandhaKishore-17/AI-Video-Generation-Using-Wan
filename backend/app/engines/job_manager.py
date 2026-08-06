@@ -67,6 +67,9 @@ class JobManager:
     def enqueue_complete_video_job(self, request: Dict[str, Any]) -> str:
         return self._enqueue_payload({"job_type": "complete_video", "request": request})
 
+    def enqueue_story_only_job(self, request: Dict[str, Any]) -> str:
+        return self._enqueue_payload({"job_type": "story_only", "request": request})
+
     def _enqueue_payload(self, payload: Dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         db: Session = SessionLocal()
@@ -119,6 +122,10 @@ class JobManager:
             await self._process_complete_video_job(job_id, payload.get("request", {}))
             return
 
+        if payload.get("job_type") == "story_only":
+            await self._process_story_only_job(job_id, payload.get("request", {}))
+            return
+
         await self._process_text_job(job_id, payload)
 
     async def _process_complete_video_job(self, job_id: str, request: Dict[str, Any]) -> None:
@@ -143,6 +150,37 @@ class JobManager:
         except Exception as exc:
             tb = traceback.format_exc()
             logger.error("Job %s: complete video pipeline failed: %s", job_id, tb)
+            self._update_job(
+                job_id,
+                status=JobStatus.FAILED,
+                progress=0.0,
+                error_message=tb,
+            )
+
+    async def _process_story_only_job(self, job_id: str, request: Dict[str, Any]) -> None:
+        """Execute the story-only pipeline: LLM story → dialogue → TTS → subtitles."""
+        try:
+            from app.services.complete_video_service import complete_video_service
+
+            async def progress_callback(stage: str, value: float) -> None:
+                self._update_job(job_id, progress=value)
+
+            logger.info("Job %s: running story-only pipeline", job_id)
+            result = await complete_video_service.generate_story_only(
+                request=request,
+                job_id=job_id,
+                progress_callback=progress_callback,
+            )
+            self._update_job(
+                job_id,
+                status=JobStatus.COMPLETED,
+                progress=100.0,
+                result_path=result.get("job_dir"),  # debug dir instead of mp4
+            )
+            logger.info("Job %s: story-only pipeline complete. debug_dir=%s", job_id, result.get("job_dir"))
+        except Exception as exc:
+            tb = traceback.format_exc()
+            logger.error("Job %s: story-only pipeline failed: %s", job_id, tb)
             self._update_job(
                 job_id,
                 status=JobStatus.FAILED,

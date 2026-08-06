@@ -47,10 +47,12 @@ class MockVideoEngine(VideoEngine):
         return self._render_video_impl(output_path, width, height, fps, duration)
 
     def _render_video_impl(self, output_path: str, width: int, height: int, fps: int, duration: float) -> str:
+        import imageio_ffmpeg
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         output_path = str(Path(output_path))
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         cmd = [
-            "ffmpeg",
+            ffmpeg_exe,
             "-y",
             "-f",
             "lavfi",

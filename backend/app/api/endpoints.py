@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 from app.core.database import get_db
 from app.models.domain import Universe, Character, TimelineEvent, StoryArc, Episode, Scene, RenderTask, StoryMemory
 from app.schemas.schemas import (
-    UniverseCreate, UniverseResponse, CharacterCreate, CharacterResponse,
+    UniverseCreate, UniverseResponse, CharacterCreate, CharacterUpdate, CharacterResponse,
     TimelineEventCreate, TimelineEventResponse, StoryArcCreate, StoryArcResponse,
     EpisodeGenerateRequest, EpisodeResponse, EpisodeDetailResponse,
     VideoRenderRequest, RenderTaskResponse, MemoryQueryRequest, MemoryQueryResult,
@@ -193,6 +193,24 @@ def delete_character(character_id: str, db: Session = Depends(get_db)):
     db.delete(char)
     db.commit()
     return {"message": f"Character {character_id} deleted successfully."}
+
+
+@router.patch("/characters/{character_id}", response_model=CharacterResponse)
+def update_character(character_id: str, payload: CharacterUpdate, db: Session = Depends(get_db)):
+    """
+    Updates an existing character profile's details.
+    """
+    char = db.query(Character).filter(Character.id == character_id).first()
+    if not char:
+        raise HTTPException(status_code=404, detail="Character not found")
+    
+    update_data = payload.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(char, key, value)
+    
+    db.commit()
+    db.refresh(char)
+    return char
 
 
 

@@ -64,5 +64,38 @@
     "rate": "-2%",
     "name": "Ryan (British)",
     "description": "Polished British cinematic male voice"
+  },
+  "CHOTA BHEEM": {
+    "character": "CHOTA BHEEM",
+    "language": "en",
+    "gender": "male",
+    "archetype": "warm_male",
+    "voice_id": "en-US-SteffanNeural",
+    "pitch": "+0Hz",
+    "rate": "-1%",
+    "name": "Steffan",
+    "description": "Warm natural conversational male voice"
+  },
+  "PRINCESS INDUMATI": {
+    "character": "PRINCESS INDUMATI",
+    "language": "en",
+    "gender": "male",
+    "archetype": "multilingual_male",
+    "voice_id": "en-US-BrianMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Brian (Multilingual)",
+    "description": "Hyper-realistic conversational human male voice"
+  },
+  "KAELEN": {
+    "character": "KAELEN",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_male",
+    "voice_id": "en-US-ChristopherNeural",
+    "pitch": "-4Hz",
+    "rate": "-3%",
+    "name": "Christopher",
+    "description": "Resonant deep cinematic male voice"
   }
 }

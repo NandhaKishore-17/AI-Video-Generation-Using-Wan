@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { api } from '../services/api';
 import { Character, Universe } from '../types';
-import { Users, Mic, Eye, UserPlus, Sparkles, X, CheckCircle2, Trash2 } from 'lucide-react';
+import { Users, Mic, Eye, UserPlus, Sparkles, X, CheckCircle2, Trash2, Edit2 } from 'lucide-react';
 
 interface CharacterManagerProps {
   activeUniverseId?: string;
@@ -13,6 +13,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
   const [universeId, setUniverseId] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<any[]>([]);
+  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -50,29 +51,66 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
     }
   };
 
+  const handleResetForm = () => {
+    setEditingCharacterId(null);
+    setName('');
+    setRole('Protagonist');
+    setPersonality('');
+    setAppearancePrompt('');
+    if (availableVoices.length > 0) {
+      setVoicePreset(availableVoices[0].id);
+    }
+    setVoicePitch(1.0);
+    setVoiceSpeed(1.0);
+    setBio('');
+  };
+
+  const handleStartEdit = (char: Character) => {
+    setEditingCharacterId(char.id);
+    setName(char.name);
+    setRole(char.role);
+    setPersonality(char.personality);
+    setAppearancePrompt(char.appearance_prompt);
+    setVoicePreset(char.voice_actor_preset);
+    setVoicePitch(char.voice_pitch);
+    setVoiceSpeed(char.voice_speed);
+    setBio(char.bio || '');
+    setShowAddModal(true);
+  };
+
   const handleAddCharacter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !personality || !appearancePrompt) return;
     setSaving(true);
     try {
-      const newChar = await api.createCharacter({
-        universe_id: universeId || 'u-cyber-99',
-        name,
-        role,
-        personality,
-        appearance_prompt: appearancePrompt,
-        voice_actor_preset: voicePreset,
-        voice_pitch: voicePitch,
-        voice_speed: voiceSpeed,
-        bio
-      });
-      setCharacters([...characters, newChar]);
+      if (editingCharacterId) {
+        const updatedChar = await api.updateCharacter(editingCharacterId, {
+          name,
+          role,
+          personality,
+          appearance_prompt: appearancePrompt,
+          voice_actor_preset: voicePreset,
+          voice_pitch: voicePitch,
+          voice_speed: voiceSpeed,
+          bio
+        });
+        setCharacters(characters.map(c => c.id === editingCharacterId ? updatedChar : c));
+      } else {
+        const newChar = await api.createCharacter({
+          universe_id: universeId || 'u-cyber-99',
+          name,
+          role,
+          personality,
+          appearance_prompt: appearancePrompt,
+          voice_actor_preset: voicePreset,
+          voice_pitch: voicePitch,
+          voice_speed: voiceSpeed,
+          bio
+        });
+        setCharacters([...characters, newChar]);
+      }
       setShowAddModal(false);
-      // Reset form
-      setName('');
-      setPersonality('');
-      setAppearancePrompt('');
-      setBio('');
+      handleResetForm();
     } catch (err) {
       console.error(err);
     } finally {
@@ -90,10 +128,13 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <h2 className="text-xl font-bold text-white flex items-center space-x-2">
                 <UserPlus className="w-5 h-5 text-cyan-400" />
-                <span>ADD NEW CHARACTER DETAILS</span>
+                <span>{editingCharacterId ? 'EDIT CHARACTER DETAILS' : 'ADD NEW CHARACTER DETAILS'}</span>
               </h2>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  handleResetForm();
+                }}
                 className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
@@ -205,7 +246,11 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
                   className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white shadow-glow-cyan flex items-center justify-center space-x-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>{saving ? 'SAVING CHARACTER...' : 'CREATE CHARACTER'}</span>
+                  <span>
+                    {saving 
+                      ? (editingCharacterId ? 'SAVING CHANGES...' : 'SAVING CHARACTER...') 
+                      : (editingCharacterId ? 'UPDATE CHARACTER' : 'CREATE CHARACTER')}
+                  </span>
                 </button>
               </div>
             </form>
@@ -226,7 +271,10 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            handleResetForm();
+            setShowAddModal(true);
+          }}
           className="px-5 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-cyan-500 to-purple-600 hover:brightness-110 text-white shadow-glow-cyan flex items-center space-x-2"
         >
           <UserPlus className="w-4 h-4" />
@@ -245,13 +293,22 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
                   {char.role}
                 </span>
               </div>
-              <button
-                onClick={() => handleDeleteCharacter(char.id)}
-                className="p-2 rounded-xl bg-slate-900 hover:bg-rose-900/80 text-slate-400 hover:text-rose-300 border border-slate-800 transition-colors"
-                title="Delete Character"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleStartEdit(char)}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-cyan-900/80 text-slate-400 hover:text-cyan-300 border border-slate-800 transition-colors"
+                  title="Edit Character"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteCharacter(char.id)}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-rose-900/80 text-slate-400 hover:text-rose-300 border border-slate-800 transition-colors"
+                  title="Delete Character"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
 

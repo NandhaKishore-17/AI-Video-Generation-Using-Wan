@@ -303,6 +303,23 @@ export const api = {
     setLocalData('characters', existing.filter(c => c.id !== id));
   },
 
+  async updateCharacter(id: string, payload: Partial<Omit<Character, 'id' | 'created_at' | 'universe_id' | 'relationships'>>): Promise<Character> {
+    try {
+      const res = await axios.patch(`${API_BASE}/characters/${id}`, payload);
+      return res.data;
+    } catch {
+      const existing = getLocalData<Character[]>('characters', []);
+      const index = existing.findIndex(c => c.id === id);
+      if (index !== -1) {
+        const updatedChar = { ...existing[index], ...payload };
+        existing[index] = updatedChar;
+        setLocalData('characters', existing);
+        return updatedChar;
+      }
+      throw new Error("Character not found");
+    }
+  },
+
   async getAvailableVoices(): Promise<any[]> {
     try {
       const res = await axios.get(`${API_BASE}/voices/available`);

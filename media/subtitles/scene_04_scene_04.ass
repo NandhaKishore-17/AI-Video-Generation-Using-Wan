@@ -10,4 +10,15 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Style: Default,Arial,24,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
 
 [Events]
-Dialogue: 0,0.00,2.00,Default,,0,0,0,,Narrator: 
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: Let's begin scanning. The scanner detects crouches nearby.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Dr. Elara Vonn: Be careful. The level of tense indicates it's risky.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: Let's move. We can't let them intercept our vex extraction.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: Let's begin scanning. I believe the key to our neo-sektor's is related to warehouse.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Dr. Elara Vonn: Indeed. My calculations show that warehouse is critical for neo-sektor's.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: Then there's no time to lose. Initializing sequence.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: Initiating diagnostic sweep. I believe the key to our very is related to figure.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Dr. Elara Vonn: Understood, Kaelin 'Zero' Vex. Let's synchronize the telemetry for figure immediately.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: Keep alert. The figure is shifting rapidly.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: This matches the target coordinates. I believe the key to our and is related to resting.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Dr. Elara Vonn: Understood, Kaelin 'Zero' Vex. Let's synchronize the telemetry for resting immediately.
+Dialogue: 0,0.00,2.00,Default,,0,0,0,,Kaelin 'Zero' Vex: Exactly. Once we bypass this, we are one step closer.

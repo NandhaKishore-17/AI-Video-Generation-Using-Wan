@@ -420,6 +420,59 @@ class TTSService:
                 scene_context=item.get("context", "")
             )
 
+            # Stage 2 & 3: Audio validation for individual dialogue WAV file
+            if not os.path.exists(line_filepath):
+                raise FileNotFoundError(f"Voice generation failed: Audio file not found at {line_filepath}")
+            
+            file_size = os.path.getsize(line_filepath)
+            if file_size < 1024:
+                raise ValueError(f"WAV file validation failed: {line_filepath} size is {file_size} bytes (under 1 KB)")
+
+            try:
+                with wave.open(line_filepath, "rb") as wf:
+                    sr_val = wf.getframerate()
+                    frames = wf.getnframes()
+                    channels = wf.getnchannels()
+                    dur_val = frames / float(sr_val)
+            except Exception as e:
+                raise ValueError(f"WAV file validation failed: Failed to read wave metadata from {line_filepath}: {e}")
+
+            if dur_val <= 0:
+                raise ValueError(f"WAV file validation failed: {line_filepath} has duration {dur_val}s (must be > 0)")
+            
+            has_stream = False
+            try:
+                import imageio_ffmpeg
+                import subprocess
+                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+                if not os.path.exists(ffprobe_exe):
+                    cmd = [ffmpeg_exe, "-i", line_filepath]
+                    res = subprocess.run(cmd, capture_output=True, text=True)
+                    has_stream = "Audio:" in res.stderr
+                else:
+                    cmd = [ffprobe_exe, "-show_streams", "-select_streams", "a", "-loglevel", "error", line_filepath]
+                    res = subprocess.run(cmd, capture_output=True, text=True)
+                    has_stream = "[STREAM]" in res.stdout
+            except Exception as e:
+                logger.warning(f"Audio stream ffprobe check failed: {e}")
+                has_stream = dur_val > 0 and channels > 0
+            
+            if not has_stream:
+                raise ValueError(f"WAV file validation failed: No valid audio stream detected by ffprobe in {line_filepath}")
+
+            # Log stage 2 & 3 details
+            logger.info(
+                "=== VOICE GENERATION REPORT (DIALOGUE LINE) ===\n"
+                f"Dialogue: {line}\n"
+                f"Speaker: {speaker}\n"
+                f"Wav Path: {line_filepath}\n"
+                f"File Size: {file_size} bytes\n"
+                f"Duration: {dur_val:.2f}s\n"
+                f"Sample Rate: {sr_val} Hz\n"
+                "=============================================="
+            )
+
             start_t = current_time
             end_t = start_t + info["duration"]
             current_time = end_t + 0.30
