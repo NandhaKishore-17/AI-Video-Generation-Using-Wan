@@ -86,6 +86,13 @@ class VideoCompositor:
         # Step 3 – mux audio into video
         if combined_voice_wav or combined_music_wav:
             self._mux_audio(ffmpeg, silent_video, combined_voice_wav, combined_music_wav, combined_srt, str(output_path))
+            
+            # Verify resulting file has audio stream
+            has_vid, has_aud = self.verify_composed_streams(str(output_path))
+            if not has_vid:
+                raise RuntimeError("Composed video has no video stream!")
+            if not has_aud:
+                raise RuntimeError("Composed video was expected to have audio but no audio stream was detected!")
         else:
             logger.warning("No valid audio files found; output will have no audio track.")
             import shutil

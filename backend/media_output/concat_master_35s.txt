@@ -1,4 +1,0 @@
-file 'C:/Users/Mohanraj/OneDrive/Desktop/itsme/backend/media_output/scene_1_35s.mp4'
-file 'C:/Users/Mohanraj/OneDrive/Desktop/itsme/backend/media_output/scene_2_35s.mp4'
-file 'C:/Users/Mohanraj/OneDrive/Desktop/itsme/backend/media_output/scene_3_35s.mp4'
-file 'C:/Users/Mohanraj/OneDrive/Desktop/itsme/backend/media_output/scene_4_35s.mp4'

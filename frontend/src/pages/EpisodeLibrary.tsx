@@ -72,6 +72,9 @@ export const EpisodeLibrary: React.FC<EpisodeLibraryProps> = ({ activeUniverseId
                   </div>
                   <h4 className="text-sm font-bold text-white">{ep.title}</h4>
                   <p className="text-xs text-slate-400 line-clamp-2">{ep.logline}</p>
+                  {ep.summary && (
+                    <p className="text-[11px] text-slate-500 line-clamp-2">{ep.summary}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2 pt-2 border-t border-slate-800/60 text-[11px] font-mono">

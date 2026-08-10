@@ -78,10 +78,17 @@ class VoiceGenerationEngine:
         srt_content = res["srt_content"]
         total_duration = res["total_duration"]
 
+        # Validate audio existence and structure
+        if not os.path.exists(composite_wav):
+            raise RuntimeError(f"TTS generation failed: output file {composite_wav} does not exist.")
+            
+        dur, sr, has_stream = await self.validate_audio_file(composite_wav)
+        if dur <= 0 or not has_stream:
+            raise RuntimeError(f"TTS generation produced invalid audio file: {composite_wav} (dur={dur}, has_stream={has_stream})")
+
         # Copy composite scene audio to media_output for video renderer access
-        if os.path.exists(composite_wav):
-            shutil.copyfile(composite_wav, filepath)
-            shutil.copyfile(composite_wav, audio_output_path)
+        shutil.copyfile(composite_wav, filepath)
+        shutil.copyfile(composite_wav, audio_output_path)
 
         # Requirements 4 & 5 & 10: unique job audio and episode audio directories
         scene_filename = f"scene_{scene_num_val:03d}.wav"
@@ -90,9 +97,8 @@ class VoiceGenerationEngine:
         episode_dir = Path(project_root) / "media" / f"episode_{episode_number:03d}"
         episode_dir.mkdir(parents=True, exist_ok=True)
         episode_audio_path = episode_dir / scene_filename
-        if os.path.exists(composite_wav):
-            shutil.copyfile(composite_wav, str(episode_audio_path))
-            logger.info(f"Copied episode composite audio to {episode_audio_path}")
+        shutil.copyfile(composite_wav, str(episode_audio_path))
+        logger.info(f"Copied episode composite audio to {episode_audio_path}")
 
         # 2. Save to job-specific folder under media/jobs/{job_id_short}/audio/
         if job_id:
@@ -100,12 +106,11 @@ class VoiceGenerationEngine:
             job_audio_dir = Path(project_root) / "media" / "jobs" / job_dir_name / "audio"
             job_audio_dir.mkdir(parents=True, exist_ok=True)
             job_audio_path = job_audio_dir / scene_filename
-            if os.path.exists(composite_wav):
-                shutil.copyfile(composite_wav, str(job_audio_path))
-                logger.info(f"Copied job composite audio to {job_audio_path}")
-            return f"/media/jobs/{job_dir_name}/audio/{scene_filename}", srt_content, total_duration
+            shutil.copyfile(composite_wav, str(job_audio_path))
+            logger.info(f"Copied job composite audio to {job_audio_path}")
+            return f"/media/jobs/{job_dir_name}/audio/{scene_filename}", srt_content, dur
 
-        return f"/media/{filename}", srt_content, total_duration
+        return f"/media/{filename}", srt_content, dur
 
     async def validate_audio_file(self, filepath: str) -> Tuple[float, int, bool]:
         """

@@ -71,6 +71,7 @@ export interface Episode {
   episode_number: number;
   title: string;
   logline: string;
+  summary?: string;
   status: 'DRAFT' | 'GENERATING' | 'RENDERING' | 'COMPLETED' | 'FAILED';
   screenplay?: Record<string, any>;
   duration_seconds: number;

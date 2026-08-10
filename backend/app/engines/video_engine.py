@@ -1,16 +1,14 @@
-import os
 import logging
-from app.core.config import settings
-from app.engines.video.wan_video_engine import get_video_engine
+from typing import Any, Dict
 
 logger = logging.getLogger("video_engine")
 
 
 class VideoGenerationEngine:
-    """Compatibility wrapper that routes scene video generation through the selected engine."""
+    """Placeholder interface for WAN integration; video rendering stays disabled until implemented."""
 
     def __init__(self):
-        self.media_dir = settings.MEDIA_OUTPUT_DIR
+        self.media_dir = None
 
     async def generate_scene_video(
         self,
@@ -20,21 +18,14 @@ class VideoGenerationEngine:
         duration_seconds: float = 5.0,
         fps: int = 24,
     ) -> str:
-        filename = f"video_{scene_id}.mp4"
-        filepath = os.path.join(self.media_dir, filename)
+        logger.info("Video generation is disabled; returning stub path for scene %s", scene_id)
+        return f"/media/stub_{scene_id}.mp4"
 
-        engine = await get_video_engine()
-        output_path = await engine.render_video_async(
-            scene_prompt=motion_prompt,
-            output_path=filepath,
-            width=settings.WAN_VIDEO_WIDTH,
-            height=settings.WAN_VIDEO_HEIGHT,
-            fps=fps,
-            duration=duration_seconds,
-            seed=42,
-        )
-        logger.info("Generated video via %s: %s", type(engine).__name__, output_path)
-        return f"/media/{filename}"
+    async def generate_scene(self, prompt: str, **kwargs: Any) -> Dict[str, Any]:
+        return {"status": "stubbed", "prompt": prompt, "output_path": None}
+
+    async def generate_episode(self, scenes: list[Dict[str, Any]], **kwargs: Any) -> Dict[str, Any]:
+        return {"status": "stubbed", "scenes": len(scenes), "output_path": None}
 
 
 video_engine = VideoGenerationEngine()

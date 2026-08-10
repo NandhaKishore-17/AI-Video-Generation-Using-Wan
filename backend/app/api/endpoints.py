@@ -137,6 +137,7 @@ def get_universe_detail(universe_id: str, db: Session = Depends(get_db)):
                 "episode_number": e.episode_number,
                 "title": e.title,
                 "logline": e.logline,
+                "summary": e.summary,
                 "status": e.status,
                 "final_video_url": e.final_video_url,
                 "thumbnail_url": e.thumbnail_url
@@ -297,15 +298,44 @@ async def generate_episode(payload: EpisodeGenerateRequest, background_tasks: Ba
     """
     Automatically generates a new episode with screenplay, keyframe images, video clips, dialogue audio, music, and subtitles.
     """
+    from app.modules.story_director import story_director
     universe = db.query(Universe).filter(Universe.id == payload.universe_id).first()
     if not universe:
         raise HTTPException(status_code=404, detail="Universe not found")
 
-    episode = await episode_generator.generate_episode_pipeline(
-        db=db,
+    # 1. Obtain Story Brief from Story Director
+    brief = await story_director.prepare_next_episode_brief(db, payload.universe_id, payload.custom_prompt or "")
+    
+    # 2. Create Episode Record & RenderTask
+    episode = Episode(
         universe_id=payload.universe_id,
-        custom_prompt=payload.custom_prompt or "",
-        scene_duration_seconds=payload.scene_duration_seconds or 8.0
+        season=brief["season"],
+        episode_number=brief["episode_number"],
+        title=f"Episode {brief['episode_number']}: Crafting Script...",
+        logline="Generating automated screenplay breakdown...",
+        status="GENERATING"
+    )
+    db.add(episode)
+    db.commit()
+    db.refresh(episode)
+
+    render_task = RenderTask(
+        episode_id=episode.id,
+        stage="SCREENPLAY",
+        progress_percentage=10,
+        current_step_details="Generating screenplay & scene breakdown..."
+    )
+    db.add(render_task)
+    db.commit()
+
+    # Launch background task
+    background_tasks.add_task(
+        episode_generator.generate_episode_pipeline,
+        episode.id,
+        payload.universe_id,
+        brief,
+        payload.custom_prompt or "",
+        payload.scene_duration_seconds or 8.0
     )
     return episode
 
@@ -326,12 +356,43 @@ def get_episode_detail(episode_id: str, db: Session = Depends(get_db)):
     """
     Fetches full episode details including breakdown of all scenes, images, audio clips, and subtitles.
     """
+    import os
+    from pathlib import Path
+    
     episode = db.query(Episode).filter(Episode.id == episode_id).first()
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
 
     scenes = db.query(Scene).filter(Scene.episode_id == episode_id).order_by(Scene.scene_number).all()
     
+    from app.core.config import BASE_DIR
+    
+    print("PLAYBACK REQUEST")
+    print(f"episode_id={episode_id}")
+    print("PLAYBACK SCENES")
+    print(f"scene_ids={[s.id for s in scenes]}")
+    
+    import logging
+    logger = logging.getLogger("playback")
+    logger.info(f"[PLAYBACK] Loading episode {episode_id} with {len(scenes)} scenes.")
+    
+    # Verify media paths exist before returning URLs to prevent 404s
+    media_root_dir = Path(BASE_DIR) / "media"
+    for s in scenes:
+        if s.image_url and not (media_root_dir / s.image_url.lstrip("/").replace("media/", "", 1)).exists():
+            logger.warning(f"[PLAYBACK] Missing image for scene {s.id}: {s.image_url}")
+            s.image_url = None
+        if s.video_url and not (media_root_dir / s.video_url.lstrip("/").replace("media/", "", 1)).exists():
+            logger.warning(f"[PLAYBACK] Missing video for scene {s.id}: {s.video_url}")
+            s.video_url = None
+        if s.audio_url and not (media_root_dir / s.audio_url.lstrip("/").replace("media/", "", 1)).exists():
+            logger.warning(f"[PLAYBACK] Missing audio for scene {s.id}: {s.audio_url}")
+            s.audio_url = None
+
+    if episode.final_video_url and not (media_root_dir / episode.final_video_url.lstrip("/").replace("media/", "", 1)).exists():
+         logger.warning(f"[PLAYBACK] Missing final video for episode {episode_id}: {episode.final_video_url}")
+         episode.final_video_url = None
+
     resp = EpisodeDetailResponse.model_validate(episode)
     resp.scenes = [s for s in scenes]
     return resp

@@ -59,6 +59,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
             <p className="text-sm text-slate-300 leading-relaxed">
               {activeUniverse?.logline || 'In a rain-drenched megacity governed by rogue AI networks, a hacker and a detective battle corporate overlords.'}
             </p>
+            {latestEpisode?.summary && (
+              <p className="text-xs text-slate-400 mt-3 border-l-2 border-cyan-500 pl-3">
+                Latest episode summary: {latestEpisode.summary}
+              </p>
+            )}
 
             <div className="flex flex-wrap gap-4 pt-2 text-xs font-mono">
               <div className="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">

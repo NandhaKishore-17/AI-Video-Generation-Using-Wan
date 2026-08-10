@@ -13,6 +13,8 @@ from app.engines.subtitle_engine import subtitle_engine
 from app.engines.music_engine import music_engine
 from app.engines.voice_engine import voice_engine
 from app.engines.dialogue_engine import dialogue_engine
+from app.engines.episode_memory import episode_memory_manager
+from app.engines.prompt_generator import prompt_generator
 from app.services.video_service import video_service
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,8 @@ class CompleteVideoService:
             progress_callback("Generating screenplay...", 10.0)
             
         episode_number = int(request.get("episode_number", 1))
-        universe_id = f"job_{job_id}"
+        universe_id = request.get("universe_id", f"job_{job_id}")
+        memory_context = episode_memory_manager.build_context(universe_id, episode_number)
 
         story = story_engine.generate_story(
             genre=request.get("genre", "Fantasy"),
@@ -60,6 +63,8 @@ class CompleteVideoService:
             characters=request.get("characters"),
             world_rules=request.get("world_rules", ""),
             previous_summaries=request.get("previous_summaries"),
+            universe_id=universe_id,
+            memory_context=memory_context,
         )
 
         print(f"Final story passed to voice and video generators:\n{json.dumps(story, indent=2)}")
@@ -87,6 +92,7 @@ class CompleteVideoService:
                 scene=scene,
                 characters=story.get("characters", []),
                 emotion=scene.get("emotion", "neutral"),
+                memory_context=memory_context,
             )
             scene_number = scene.get("scene_number", 1)
             
@@ -112,7 +118,7 @@ class CompleteVideoService:
             # Requirement 2 & 12: Generate dialogue dynamically scene-by-scene with correct episode_number
             dialogue_res = await dialogue_engine.generate_dialogue_for_scene(
                 scene_number=scene_number,
-                scene_title=f"Scene {scene_number}",
+                scene_title=scene.get("title") or f"Scene {scene_number}",
                 scene_description=scene.get("description", ""),
                 characters=story.get("characters", []),
                 scene_emotion=scene.get("emotion", "neutral"),
@@ -120,7 +126,14 @@ class CompleteVideoService:
                 episode_objective=story.get("summary", request.get("theme", "")),
                 universe_id=universe_id,
                 previous_dialogues=accumulated_dialogue,
-                episode_number=episode_number
+                episode_number=episode_number,
+                scene_context={
+                    "scene_id": scene.get("id") or f"scene_{scene_number:03d}",
+                    "location": scene.get("location", ""),
+                    "camera": scene.get("camera", ""),
+                    "lighting": scene.get("lighting", ""),
+                    "mood": scene.get("mood", ""),
+                },
             )
             dialogue_list = dialogue_res.get("dialogue", [])
             accumulated_dialogue.extend(dialogue_list)

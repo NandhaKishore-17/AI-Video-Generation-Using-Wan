@@ -45,7 +45,7 @@ class OllamaClient:
     def model(self) -> str:
         return self._model or getattr(settings, "OLLAMA_MODEL", settings.OLLAMA_MODEL)
 
-    def generate(self, prompt: str, system: Optional[str] = None) -> str:
+    def generate(self, prompt: str, system: Optional[str] = None, format: Optional[str] = None) -> str:
         """Send prompt to Ollama with streaming enabled to prevent read timeouts.
 
         Logs request start time, first token arrival time (TTFT), and total generation time.
@@ -60,6 +60,8 @@ class OllamaClient:
         }
         if system:
             payload["system"] = system
+        if format:
+            payload["format"] = format
 
         timeout_val = self.timeout or getattr(settings, "OLLAMA_TIMEOUT", 600)
         last_error: Optional[Exception] = None

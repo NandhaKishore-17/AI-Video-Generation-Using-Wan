@@ -1,4 +1,0 @@
-file 'C:/Users/Mohanraj/OneDrive/Desktop/vediogen/AI-Video-Generation-Using-Wan/media_output/video_f972e942-8f9f-4b8f-ac00-529dc2b805ab.mp4'
-file 'C:/Users/Mohanraj/OneDrive/Desktop/vediogen/AI-Video-Generation-Using-Wan/media_output/video_bf9e3c24-407c-4812-8aed-ee3b21fb6ed2.mp4'
-file 'C:/Users/Mohanraj/OneDrive/Desktop/vediogen/AI-Video-Generation-Using-Wan/media_output/video_d184e4b8-0131-4b30-85b2-65b55ce7add0.mp4'
-file 'C:/Users/Mohanraj/OneDrive/Desktop/vediogen/AI-Video-Generation-Using-Wan/media_output/video_3328ea30-ed3f-421e-8625-75cbc5de3b92.mp4'

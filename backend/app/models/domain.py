@@ -91,6 +91,7 @@ class Episode(Base):
     episode_number = Column(Integer, nullable=False)
     title = Column(String(255), nullable=False)
     logline = Column(Text, nullable=False)
+    summary = Column(Text, nullable=True)
     status = Column(String(50), default="DRAFT")  # DRAFT, GENERATING, READY, RENDERING, COMPLETED, FAILED
     screenplay = Column(JSON, nullable=True)  # Complete JSON breakdown of screenplay scenes
     duration_seconds = Column(Float, default=0.0)

@@ -60,6 +60,7 @@ const DEFAULT_EPISODES: Episode[] = [
     episode_number: 1,
     title: 'Episode 1: Signals in the Rain',
     logline: 'Kaelen receives an encrypted transmission pointing to an abandoned server vault beneath Sektor 7.',
+    summary: 'Episode 1 establishes the core conflict and introduces the hacker protagonist infiltrating the corporate network.',
     status: 'COMPLETED',
     duration_seconds: 18.0,
     final_video_url: '/media/video_scene1.mp4',
@@ -114,6 +115,7 @@ const DEFAULT_EPISODES: Episode[] = [
     episode_number: 2,
     title: 'Episode 2: Holographic Deceptions',
     logline: 'Nova and Kaelen decode the hidden message left by the first AI, revealing Director Vane’s plan.',
+    summary: 'Episode 2 deepens the conspiracy and confirms the antagonist’s hidden agenda while building the team’s stakes.',
     status: 'COMPLETED',
     duration_seconds: 21.0,
     final_video_url: '/media/video_scene2.mp4',
@@ -457,6 +459,9 @@ export const api = {
       logline: custom_prompt
         ? `As plot direction unfolds: "${custom_prompt}", Kaelen and Nova execute a high-stakes data extraction mission.`
         : `Kaelen Vance and Nova Thorne decode classified neural memory logs to prevent Director Vane's obsidian lockdown.`,
+      summary: custom_prompt
+        ? `A tightly plotted episode that follows the team's response to the prompt: ${custom_prompt}.`
+        : `A dramatic continuation of the cyberpunk conspiracy with a fresh reveal and escalating stakes.`,
       status: 'COMPLETED',
       duration_seconds: secPerScene * 3,
       final_video_url: '/media/video_scene1.mp4',
@@ -585,6 +590,7 @@ export const api = {
       episode_number: 1,
       title: 'Episode 1: Signals in the Rain',
       logline: 'Kaelen receives an encrypted transmission pointing to an abandoned server vault beneath Sektor 7.',
+      summary: 'Episode 1 establishes the core conflict and introduces the hacker protagonist infiltrating the corporate network.',
       status: 'COMPLETED',
       duration_seconds: 19.5,
       final_video_url: '/media/video_scene1.mp4',

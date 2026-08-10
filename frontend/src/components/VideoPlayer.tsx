@@ -76,10 +76,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     stopTTS();
     if (videoUrl && videoUrl.trim().length > 0) {
       setActiveSrc(videoUrl);
+    } else if (scenes && scenes.length > 0 && scenes[0].video_url) {
+      setActiveSrc(scenes[0].video_url);
     } else {
-      setActiveSrc('/media/video_scene1.mp4');
+      setActiveSrc('');
     }
-  }, [videoUrl]);
+  }, [videoUrl, scenes]);
 
   // Stop TTS
   const stopTTS = useCallback(() => {

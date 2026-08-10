@@ -21,16 +21,33 @@ class QdrantStoryMemoryEngine:
         episode_number: int,
         summary: str,
         entities_involved: List[str],
-        memory_type: str = "EPISODE_RECAP"
+        memory_type: str = "EPISODE_RECAP",
+        completed_events: List[str] = None,
+        unresolved_events: List[str] = None,
+        character_states: Dict[str, str] = None,
+        new_locations: List[str] = None,
+        new_items: List[str] = None
     ) -> str:
         """
         Stores episode memory embedding vector into Qdrant index.
         """
+        enhanced_summary = summary
+        if completed_events:
+            enhanced_summary += f"\nCompleted Events: {', '.join(completed_events)}"
+        if unresolved_events:
+            enhanced_summary += f"\nUnresolved Events: {', '.join(unresolved_events)}"
+        if character_states:
+            enhanced_summary += f"\nCharacter States: {', '.join([f'{k}: {v}' for k, v in character_states.items()])}"
+        if new_locations:
+            enhanced_summary += f"\nNew Locations: {', '.join(new_locations)}"
+        if new_items:
+            enhanced_summary += f"\nNew Items: {', '.join(new_items)}"
+
         memory_item = {
             "id": f"mem_{universe_id}_{episode_number}_{len(self.in_memory_fallback)}",
             "universe_id": universe_id,
             "episode_number": episode_number,
-            "content": summary,
+            "content": enhanced_summary,
             "entities_involved": entities_involved,
             "memory_type": memory_type
         }

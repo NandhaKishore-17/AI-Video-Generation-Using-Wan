@@ -2,18 +2,17 @@ import json
 import logging
 import re
 import uuid
-import random
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 from app.core.config import settings
-from app.engines.llm.ollama_client import OllamaClient, OllamaError, ollama_client
+from app.engines.episode_memory import episode_memory_manager
+from app.engines.llm.ollama_client import OllamaClient, ollama_client
 
 logger = logging.getLogger(__name__)
 
 
 class StoryEngine:
-    """Generate story structures for complete video production pipelines."""
+    """Generate fresh story structures that continue from prior episode memory."""
 
     def __init__(self, provider: str = None, client: Optional[OllamaClient] = None):
         self.provider = provider or settings.LLM_PROVIDER
@@ -28,9 +27,10 @@ class StoryEngine:
         episode_number: int = 1,
         characters: Optional[list] = None,
         world_rules: str = "",
-        previous_summaries: Optional[list] = None
+        previous_summaries: Optional[list] = None,
+        universe_id: str = "default",
+        memory_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Generate story structures using local Ollama LLM server. Raises exception if Ollama fails."""
         return self._generate_with_llm(
             genre=genre,
             theme=theme,
@@ -39,7 +39,9 @@ class StoryEngine:
             episode_number=episode_number,
             characters_input=characters,
             world_rules=world_rules,
-            previous_summaries=previous_summaries
+            previous_summaries=previous_summaries,
+            universe_id=universe_id,
+            memory_context=memory_context,
         )
 
     def _generate_with_llm(
@@ -51,48 +53,61 @@ class StoryEngine:
         episode_number: int,
         characters_input: Optional[list] = None,
         world_rules: str = "",
-        previous_summaries: Optional[list] = None
+        previous_summaries: Optional[list] = None,
+        universe_id: str = "default",
+        memory_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         char_names = [c.get("name") for c in characters_input] if characters_input else []
-        
+        context = memory_context or episode_memory_manager.build_context(universe_id, episode_number)
+        previous_cliffhanger = context.get("previous_cliffhanger", "")
+        previous_summary = context.get("previous_summary", "")
+        memory_notes = context.get("memory_notes", {})
+
         print(f"Universe: {theme}")
         print(f"Episode: {episode_number}")
         print(f"Characters: {char_names if char_names else 'Auto-generating characters'}")
         print("Sending prompt to Ollama...")
         print(f"Model: {self.client.model}")
-        
-        logger.info(f"Universe: {theme} | Episode: {episode_number} | Model: {self.client.model}")
+
+        logger.info("Universe: %s | Episode: %s | Model: %s", theme, episode_number, self.client.model)
 
         char_context_str = f"Use these existing characters: {', '.join(char_names)}" if char_names else "Create 2-3 original characters tailored specifically to this story world."
-        rules_str = f"World Rules: {world_rules}" if world_rules else ""
-        summary_str = f"Previous Episode Summaries: {previous_summaries}" if previous_summaries else ""
+        rules_str = f"World Rules: {world_rules or ', '.join(context.get('world_rules', []))}" if world_rules or context.get("world_rules") else ""
+        summary_str = f"Previous Episode Summary: {previous_summary}" if previous_summary else ""
+        cliffhanger_str = f"Previous Cliffhanger: {previous_cliffhanger}" if previous_cliffhanger else ""
+        memory_notes_str = f"Memory Notes: {json.dumps(memory_notes)}" if memory_notes else ""
 
         system_prompt = (
-            "You are a cinematic story designer. Return ONLY raw JSON with keys: title, characters, scenes, summary. "
-            "Each character has name, age, gender, clothes, personality. "
-            "Each scene has scene_number, description, emotion."
+            "You are a cinematic story designer. Return ONLY raw JSON with keys: title, summary, cliffhanger, characters, scenes. "
+            "Each character has name, role, age, personality, voice, appearance, goals, relationships, status, growth. "
+            "Each scene has id, title, location, duration, description, camera, lighting, mood, visual_prompt, motion_prompt, dialogues. "
+            "Each dialogue has speaker, text, emotion, voice."
         )
         user_prompt = (
             f"Create Episode {episode_number} for '{theme}' ({genre}).\n"
-            f"{char_context_str}\n{rules_str}\n{summary_str}\n"
-            "Return compact JSON with 3 scenes."
+            f"{char_context_str}\n{rules_str}\n{summary_str}\n{cliffhanger_str}\n{memory_notes_str}\n"
+            "Continue the story naturally, never restart it, and introduce a new conflict, new location, and a fresh cliffhanger. "
+            "Return JSON only with 3 scenes."
         )
 
-        print(f"Prompt sent to Ollama:\n{user_prompt}")
-        logger.info(f"Prompt sent to Ollama:\n{user_prompt}")
-
         raw = self.client.generate(prompt=user_prompt, system=system_prompt)
-        print(f"Raw Ollama response:\n{raw}")
-        logger.info(f"Raw Ollama response:\n{raw}")
-
         data = self._extract_json(raw)
         if not data.get("title") or not data.get("characters") or not data.get("scenes"):
-            raise ValueError(f"Incomplete story payload returned by Ollama model {self.client.model}: {raw}")
+            raise ValueError(f"Incomplete story payload returned by Ollama: {raw}")
 
-        print("Story parsed successfully")
         story = self._normalize_story(data, genre, theme, duration, language, episode_number)
-        print(f"Final story passed to voice and video generators:\n{json.dumps(story, indent=2)}")
-        logger.info(f"Final story passed to voice and video generators:\n{json.dumps(story, indent=2)}")
+        episode_memory_manager.save_episode(
+            universe_id=universe_id,
+            episode_number=episode_number,
+            episode_data={
+                "title": story.get("title"),
+                "summary": story.get("summary"),
+                "cliffhanger": story.get("cliffhanger"),
+            },
+            characters=story.get("characters", []),
+            scenes=story.get("scenes", []),
+            memory_notes=memory_notes,
+        )
         return story
 
     def _extract_json(self, raw: str) -> Dict[str, Any]:
@@ -159,16 +174,27 @@ class StoryEngine:
 
         scenes = []
         for index, scene in enumerate(data.get("scenes", [])[:6], start=1):
+            dialogues = scene.get("dialogues") or []
+            if not dialogues and scene.get("dialogue"):
+                dialogues = scene.get("dialogue")
             scenes.append(
                 {
                     "scene_number": int(scene.get("scene_number", index)),
+                    "id": scene.get("id") or f"scene{index:02d}",
+                    "title": scene.get("title") or f"Scene {index}",
+                    "location": scene.get("location") or "",
+                    "duration": int(scene.get("duration", 10)),
                     "description": scene.get("description", f"{genre} scene {index}"),
-                    "dialogue": "",
+                    "camera": scene.get("camera") or "cinematic tracking shot",
+                    "lighting": scene.get("lighting") or "dramatic rim lighting",
+                    "mood": scene.get("mood") or "neutral",
+                    "visual_prompt": scene.get("visual_prompt") or scene.get("image_prompt", ""),
+                    "motion_prompt": scene.get("motion_prompt") or scene.get("video_motion_prompt", ""),
+                    "negative_prompt": scene.get("negative_prompt", ""),
+                    "dialogues": dialogues,
+                    "dialogue": dialogues,
                     "narration": scene.get("narration", scene.get("description", f"{theme} scene {index}")),
                     "emotion": scene.get("emotion", "neutral"),
-                    "visual_prompt": scene.get("visual_prompt", scene.get("image_prompt", "")),
-                    "motion_prompt": scene.get("motion_prompt", scene.get("video_motion_prompt", "")),
-                    "negative_prompt": scene.get("negative_prompt", ""),
                 }
             )
 
@@ -180,7 +206,8 @@ class StoryEngine:
             "language": language,
             "characters": characters,
             "scenes": scenes,
-            "summary": data.get("summary", f"Episode {episode_number} of the {theme} series.")
+            "summary": data.get("summary", f"Episode {episode_number} of the {theme} series."),
+            "cliffhanger": data.get("cliffhanger", f"The story escalates in a new way during Episode {episode_number}."),
         }
 
 

@@ -1,0 +1,60 @@
+{
+  "memories": {
+    "Eira Shadowglow": [
+      {
+        "episode": 10,
+        "content": "Successfully finished Episode 10 (The Heart of Eldrida): Eira must delve into the heart of Eldrida's Root to uncover a hidden core protocol secret, but Arin's corruption threatens to consume everything.."
+      },
+      {
+        "episode": 11,
+        "content": "Successfully finished Episode 11 (Unveiling the Core Protocol): Eira must decipher the hidden secrets of Eldrida's Root, while Arin's corruption threatens to destroy the forest's delicate balance.."
+      },
+      {
+        "episode": 12,
+        "content": "Successfully finished Episode 12 (Beyond the Shadow's Reach): Eira delves deeper into Eldrida's Root to uncover the core protocol, while Arin's influence threatens to consume the forest.."
+      },
+      {
+        "episode": 25,
+        "content": "Successfully finished Episode 25 (Beyond the Hidden Chamber's Shadows): Eira Shadowglow uncovers a cryptic message that could hold the key to unlocking the core protocol, but Arin's corruption spreads, putting the entire forest at risk.."
+      }
+    ],
+    "Arin the Unyielding": [
+      {
+        "episode": 10,
+        "content": "Successfully finished Episode 10 (The Heart of Eldrida): Eira must delve into the heart of Eldrida's Root to uncover a hidden core protocol secret, but Arin's corruption threatens to consume everything.."
+      },
+      {
+        "episode": 11,
+        "content": "Successfully finished Episode 11 (Unveiling the Core Protocol): Eira must decipher the hidden secrets of Eldrida's Root, while Arin's corruption threatens to destroy the forest's delicate balance.."
+      },
+      {
+        "episode": 12,
+        "content": "Successfully finished Episode 12 (Beyond the Shadow's Reach): Eira delves deeper into Eldrida's Root to uncover the core protocol, while Arin's influence threatens to consume the forest.."
+      },
+      {
+        "episode": 25,
+        "content": "Successfully finished Episode 25 (Beyond the Hidden Chamber's Shadows): Eira Shadowglow uncovers a cryptic message that could hold the key to unlocking the core protocol, but Arin's corruption spreads, putting the entire forest at risk.."
+      }
+    ],
+    "Lysander Moonwhisper": [
+      {
+        "episode": 10,
+        "content": "Successfully finished Episode 10 (The Heart of Eldrida): Eira must delve into the heart of Eldrida's Root to uncover a hidden core protocol secret, but Arin's corruption threatens to consume everything.."
+      },
+      {
+        "episode": 11,
+        "content": "Successfully finished Episode 11 (Unveiling the Core Protocol): Eira must decipher the hidden secrets of Eldrida's Root, while Arin's corruption threatens to destroy the forest's delicate balance.."
+      },
+      {
+        "episode": 12,
+        "content": "Successfully finished Episode 12 (Beyond the Shadow's Reach): Eira delves deeper into Eldrida's Root to uncover the core protocol, while Arin's influence threatens to consume the forest.."
+      },
+      {
+        "episode": 25,
+        "content": "Successfully finished Episode 25 (Beyond the Hidden Chamber's Shadows): Eira Shadowglow uncovers a cryptic message that could hold the key to unlocking the core protocol, but Arin's corruption spreads, putting the entire forest at risk.."
+      }
+    ]
+  },
+  "relationships": {},
+  "knowledge": {}
+}

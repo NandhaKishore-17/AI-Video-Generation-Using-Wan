@@ -144,6 +144,7 @@ class EpisodeResponse(BaseModel):
     episode_number: int
     title: str
     logline: str
+    summary: Optional[str] = None
     status: str
     screenplay: Optional[Dict[str, Any]]
     duration_seconds: float
@@ -218,3 +219,37 @@ class SchedulerStatusResponse(BaseModel):
     last_run: Optional[datetime]
     next_run: Optional[datetime]
     auto_publish: bool
+
+
+# --- LLM Validation Schemas ---
+class DialogueData(BaseModel):
+    speaker: str
+    line: str
+
+class SceneData(BaseModel):
+    scene_number: int
+    location: str
+    visual_description: str
+    emotion: str
+    image_prompt: str
+    video_motion_prompt: str
+    negative_prompt: str
+    dialogue: List[DialogueData]
+
+class ScreenplayData(BaseModel):
+    episode_title: str
+    logline: str
+    summary: str
+    completed_events: List[str] = []
+    unresolved_events: List[str] = []
+    character_states: Dict[str, str] = {}
+    new_locations: List[str] = []
+    new_items: List[str] = []
+    scenes: List[SceneData]
+
+class UniverseGeneratedData(BaseModel):
+    world_summary: str
+    factions: List[str] = []
+    historical_milestones: List[Any] = []
+    suggested_characters: List[Dict[str, Any]] = []
+    initial_story_arcs: List[Dict[str, Any]] = []

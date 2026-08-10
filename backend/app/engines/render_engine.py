@@ -50,6 +50,28 @@ class FFmpegVideoRenderEngine:
             logger.warning(f"Error combining WAV files: {e}")
             return False
 
+    def _verify_audio_stream(self, video_path: str) -> bool:
+        """Verifies that the final MP4 contains an audio stream using ffprobe."""
+        if not os.path.exists(video_path):
+            return False
+        try:
+            ffmpeg_exe = self._get_ffmpeg_exe()
+            ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+            if os.path.exists(ffprobe_exe):
+                cmd = [ffprobe_exe, "-show_streams", "-select_streams", "a", "-loglevel", "error", video_path]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                has_stream = "[STREAM]" in res.stdout
+            else:
+                cmd = [ffmpeg_exe, "-i", video_path]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                has_stream = "Audio:" in res.stderr
+            
+            logger.info(f"[MEDIA VERIFY] video_stream=true, audio_stream={str(has_stream).lower()}")
+            return has_stream
+        except Exception as e:
+            logger.error(f"Error verifying audio stream: {e}")
+            return False
+
     async def render_episode_mp4(
         self,
         episode_id: str,
@@ -153,6 +175,8 @@ class FFmpegVideoRenderEngine:
         combined_music_path = os.path.join(self.temp_dir, f"music_{episode_id}.wav")
         has_music = self._combine_wav_files(valid_score_paths, combined_music_path) if valid_score_paths else False
 
+        has_audio = self._combine_wav_files(valid_audio_paths, combined_audio_path) if valid_audio_paths else False
+
         ffmpeg_exe = self._get_ffmpeg_exe()
 
         # Execute FFmpeg Command to Concatenate Video + Merge Voice & Score Audio Tracks + Burn Subtitles
@@ -190,6 +214,10 @@ class FFmpegVideoRenderEngine:
             logger.info("Executing render_engine FFmpeg command:\n%s", " ".join(cmd))
             subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info(f"FFmpeg render successful with audio: {output_path}")
+            
+            if not self._verify_audio_stream(output_path):
+                raise ValueError("Final MP4 has no audio stream! Muxing failed.")
+                
             return f"/media/{output_filename}"
         except Exception as e:
             logger.warning(f"FFmpeg execution failed: {e}. Executing direct audio-video multiplex fallback.")
@@ -213,6 +241,10 @@ class FFmpegVideoRenderEngine:
                         output_path
                     ]
                     subprocess.run(cmd_fallback, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    
+                    if not self._verify_audio_stream(output_path):
+                        raise ValueError("Fallback Final MP4 has no audio stream!")
+                        
                     return f"/media/{output_filename}"
                 except Exception as fb_err:
                     logger.warning(f"Fallback multiplex failed: {fb_err}")

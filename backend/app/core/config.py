@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     CUDA_DEVICE: str = "cuda:0"
     
     # Local Wan 2.2 TI2V-5B Model Settings
-    WAN_MODEL_PATH: str = str(MODEL_DIR / "Wan2.2-TI2V-5B")
+    WAN_MODEL_PATH: str = os.getenv("WAN_MODEL_PATH", str(MODEL_DIR / "Wan2.2-TI2V-5B"))
     WAN_DEVICE: str = "cuda:0"
     WAN_ENABLE_CPU_OFFLOAD: bool = True  # Enable model CPU offloading to save VRAM
     WAN_NUM_FRAMES: int = 81          # ~3.4 seconds at 24fps

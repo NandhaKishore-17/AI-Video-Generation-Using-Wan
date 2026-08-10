@@ -15,10 +15,22 @@ export const EpisodeModal: React.FC<EpisodeModalProps> = ({ episode, onClose }) 
   const [fullEpisodeDetail, setFullEpisodeDetail] = useState<Episode | null>(null);
 
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
     if (episode) {
       loadDetail(episode.id);
+      
+      interval = setInterval(() => {
+        if (fullEpisodeDetail && (fullEpisodeDetail.status === 'COMPLETED' || fullEpisodeDetail.status === 'FAILED')) {
+          clearInterval(interval);
+        } else {
+          loadDetail(episode.id);
+        }
+      }, 3000);
     }
-  }, [episode]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [episode, fullEpisodeDetail?.status]);
 
   const loadDetail = async (id: string) => {
     const detail = await api.getEpisodeDetail(id);
@@ -89,19 +101,42 @@ export const EpisodeModal: React.FC<EpisodeModalProps> = ({ episode, onClose }) 
 
         {/* Modal Body Scroll Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <p className="text-xs text-slate-300 italic border-l-2 border-cyan-500 pl-3">
-            {currentEp.logline}
-          </p>
+          <div className="space-y-3">
+            <p className="text-xs text-slate-300 italic border-l-2 border-cyan-500 pl-3">
+              {currentEp.logline}
+            </p>
+            {currentEp.summary && (
+              <p className="text-xs text-slate-400 bg-slate-950/80 border border-slate-800 rounded-2xl p-3">
+                {currentEp.summary}
+              </p>
+            )}
+          </div>
 
           {activeTab === 'video' ? (
             <div className="space-y-4">
-              <VideoPlayer
-                videoUrl={currentEp.final_video_url}
-                posterUrl={currentEp.thumbnail_url}
-                title={currentEp.title}
-                subtitles="Burnt-in Subtitles"
-                scenes={currentEp.scenes}
-              />
+              {currentEp.status === 'COMPLETED' ? (
+                <VideoPlayer
+                  videoUrl={currentEp.final_video_url}
+                  posterUrl={currentEp.thumbnail_url}
+                  title={currentEp.title}
+                  subtitles="Burnt-in Subtitles"
+                  scenes={currentEp.scenes}
+                />
+              ) : currentEp.status === 'FAILED' ? (
+                <div className="w-full aspect-video bg-rose-950/30 border border-rose-800 rounded-2xl flex flex-col items-center justify-center space-y-4">
+                  <X className="w-12 h-12 text-rose-500" />
+                  <p className="text-rose-400 font-mono text-sm">Episode Generation Failed</p>
+                </div>
+              ) : (
+                <div className="w-full aspect-video bg-slate-900 border border-cyan-800/50 rounded-2xl flex flex-col items-center justify-center space-y-6">
+                  <Sparkles className="w-12 h-12 text-cyan-400 animate-spin" />
+                  <div className="text-center">
+                    <p className="text-cyan-400 font-bold tracking-widest animate-pulse">AUTONOMOUS GENERATION IN PROGRESS</p>
+                    <p className="text-slate-400 text-sm mt-2 font-mono">Current Status: {currentEp.status}</p>
+                    <p className="text-slate-500 text-xs mt-1 italic">Writing screenplay, parsing scenes, rendering video...</p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <ScreenplayView

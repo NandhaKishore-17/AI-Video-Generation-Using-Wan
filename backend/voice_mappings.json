@@ -97,5 +97,82 @@
     "rate": "-3%",
     "name": "Christopher",
     "description": "Resonant deep cinematic male voice"
+  },
+  "DARK SAGE KAAL (VIA COMMS)": {
+    "character": "DARK SAGE KAAL (VIA COMMS)",
+    "language": "en",
+    "gender": "female",
+    "archetype": "multilingual_female",
+    "voice_id": "en-US-EmmaMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Emma (Multilingual)",
+    "description": "Hyper-realistic conversational human female voice"
+  },
+  "EIRA SHADOWGLOW": {
+    "character": "EIRA SHADOWGLOW",
+    "language": "en",
+    "gender": "male",
+    "archetype": "energetic_male",
+    "voice_id": "en-US-GuyNeural",
+    "pitch": "+2Hz",
+    "rate": "+5%",
+    "name": "Guy",
+    "description": "Dynamic energetic male voice"
+  },
+  "ARIN THE UNYIELDING": {
+    "character": "ARIN THE UNYIELDING",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_villain_male",
+    "voice_id": "en-AU-WilliamNeural",
+    "pitch": "-6Hz",
+    "rate": "-5%",
+    "name": "William",
+    "description": "Deep authoritative villain male voice"
+  },
+  "LYSANDER MOONWHISPER": {
+    "character": "LYSANDER MOONWHISPER",
+    "language": "en",
+    "gender": "male",
+    "archetype": "warm_male",
+    "voice_id": "en-US-SteffanNeural",
+    "pitch": "+0Hz",
+    "rate": "-1%",
+    "name": "Steffan",
+    "description": "Warm natural conversational male voice"
+  },
+  "EIRA": {
+    "character": "EIRA",
+    "language": "en",
+    "gender": "male",
+    "archetype": "young_male",
+    "voice_id": "en-US-AndrewNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Andrew",
+    "description": "Young energetic natural male voice"
+  },
+  "LYSANDER": {
+    "character": "LYSANDER",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_male",
+    "voice_id": "en-US-ChristopherNeural",
+    "pitch": "-4Hz",
+    "rate": "-3%",
+    "name": "Christopher",
+    "description": "Resonant deep cinematic male voice"
+  },
+  "ARIN": {
+    "character": "ARIN",
+    "language": "en",
+    "gender": "male",
+    "archetype": "multilingual_male",
+    "voice_id": "en-US-BrianMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Brian (Multilingual)",
+    "description": "Hyper-realistic conversational human male voice"
   }
 }
