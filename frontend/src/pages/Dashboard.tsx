@@ -4,7 +4,8 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { EpisodeModal } from '../components/EpisodeModal';
 import { api } from '../services/api';
 import { Universe, Episode, AnalyticsData } from '../types';
-import { Film, Zap, Play, CheckCircle2, Cpu, Activity, Clock, RefreshCw, FileText, Eye } from 'lucide-react';
+import { Film, Zap, Play, CheckCircle2, Cpu, Activity, Clock, RefreshCw, FileText, Eye, BookOpen } from 'lucide-react';
+import { KnowledgeDocument } from '../types';
 
 interface DashboardProps {
   onNavigatePage: (page: any) => void;
@@ -19,6 +20,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [selectedEpForModal, setSelectedEpForModal] = useState<Episode | null>(null);
+  
+  // Reference RAG State
+  const [useReference, setUseReference] = useState(false);
+  const [knowledgeList, setKnowledgeList] = useState<KnowledgeDocument[]>([]);
+  const [selectedReference, setSelectedReference] = useState<string>('');
+  const [referenceInfluence, setReferenceInfluence] = useState<string>('Medium');
 
   useEffect(() => {
     loadData();
@@ -33,6 +40,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
     setEpisodes(epData);
     const aData = await api.getAnalytics();
     setAnalytics(aData);
+    
+    // Load knowledge documents
+    const kData = await api.getKnowledgeList();
+    setKnowledgeList(kData);
+    if (kData.length > 0 && !selectedReference) {
+      setSelectedReference(kData[0].id);
+    }
+  };
+
+  const handleGenerateWithRAG = async () => {
+    if (!activeUniverseId) return;
+    
+    onGenerateClick(); // Keep parent tracking if needed, wait actually the parent does the generation...
+    // Let's modify the parent's handler or just do it here. 
+    // It's cleaner to dispatch the generation here.
   };
 
   const activeUniverse = universes.find(u => u.id === activeUniverseId) || universes[0];
@@ -78,23 +100,110 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  const btn = document.getElementById('dash-gen-btn');
+                  if (btn) btn.click();
+                }}
+                disabled={isGenerating}
+                className="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white shadow-glow-cyan hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
+              >
+                <Zap className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                <span>{isGenerating ? 'GENERATING EPISODE...' : 'GENERATE NEXT EPISODE'}</span>
+              </button>
+  
+              <button
+                onClick={() => onNavigatePage('episodes')}
+                className="px-5 py-3.5 rounded-xl font-semibold text-sm bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 flex items-center justify-center space-x-2"
+              >
+                <Film className="w-4 h-4 text-cyan-400" />
+                <span>EXPLORE EPISODES</span>
+              </button>
+            </div>
+            
+            {/* Reference Knowledge Options */}
+            <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-slate-200">Use reference knowledge:</span>
+                </div>
+                <div className="flex bg-slate-800 rounded-lg p-1 text-xs font-bold">
+                  <button 
+                    onClick={() => setUseReference(true)}
+                    className={`px-3 py-1 rounded-md transition-colors ${useReference ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                  >
+                    ON
+                  </button>
+                  <button 
+                    onClick={() => setUseReference(false)}
+                    className={`px-3 py-1 rounded-md transition-colors ${!useReference ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                  >
+                    OFF
+                  </button>
+                </div>
+              </div>
+              
+              {useReference && (
+                <div className="space-y-3 pt-2 border-t border-slate-700/50">
+                  <div className="flex flex-col space-y-1 text-sm">
+                    <label className="text-slate-400 text-xs font-bold">Reference Document:</label>
+                    <select 
+                      value={selectedReference}
+                      onChange={(e) => setSelectedReference(e.target.value)}
+                      className="bg-slate-950 text-emerald-300 font-semibold px-3 py-2 rounded-xl border border-slate-700 focus:border-emerald-500 focus:outline-none"
+                    >
+                      {knowledgeList.length === 0 ? (
+                        <option value="">No reference uploaded (Upload in Knowledge Library)</option>
+                      ) : (
+                        knowledgeList.map(k => (
+                          <option key={k.id} value={k.id}>✓ {k.name}</option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                  
+                  <div className="flex flex-col space-y-1 text-sm">
+                    <label className="text-slate-400 text-xs font-bold">Influence:</label>
+                    <div className="flex items-center space-x-2 text-xs font-bold">
+                      {['Low', 'Medium', 'High'].map(level => (
+                        <button
+                          key={level}
+                          onClick={() => setReferenceInfluence(level)}
+                          className={`flex-1 py-1.5 rounded-lg border transition-colors ${
+                            referenceInfluence === level 
+                            ? 'bg-emerald-900/60 border-emerald-500 text-emerald-400' 
+                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                          }`}
+                        >
+                          {referenceInfluence === level ? '●' : '○'} {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Hidden button for triggering generation from App.tsx via DOM hack or we just pass the values up */}
             <button
-              onClick={onGenerateClick}
-              disabled={isGenerating}
-              className="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white shadow-glow-cyan hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
-            >
-              <Zap className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-              <span>{isGenerating ? 'GENERATING EPISODE...' : 'GENERATE NEXT EPISODE'}</span>
-            </button>
-
-            <button
-              onClick={() => onNavigatePage('episodes')}
-              className="px-5 py-3.5 rounded-xl font-semibold text-sm bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 flex items-center justify-center space-x-2"
-            >
-              <Film className="w-4 h-4 text-cyan-400" />
-              <span>EXPLORE EPISODES</span>
-            </button>
+              id="dash-gen-btn"
+              className="hidden"
+              onClick={() => {
+                // To avoid passing more props to Dashboard, we can dispatch a custom event or store in localStorage
+                // But the cleanest way is just passing a callback. Let's use localStorage for now to pass the RAG params
+                if (useReference && selectedReference) {
+                  localStorage.setItem('rag_reference_id', selectedReference);
+                  localStorage.setItem('rag_reference_influence', referenceInfluence);
+                } else {
+                  localStorage.removeItem('rag_reference_id');
+                  localStorage.removeItem('rag_reference_influence');
+                }
+                onGenerateClick();
+              }}
+            />
           </div>
         </div>
       </div>

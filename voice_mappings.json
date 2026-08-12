@@ -86,5 +86,27 @@
     "rate": "+0%",
     "name": "Andrew",
     "description": "Young energetic natural male voice"
+  },
+  "AETHON DARKHAVEN": {
+    "character": "AETHON DARKHAVEN",
+    "language": "en",
+    "gender": "male",
+    "archetype": "multilingual_male",
+    "voice_id": "en-US-BrianMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Brian (Multilingual)",
+    "description": "Hyper-realistic conversational human male voice"
+  },
+  "LYSANDER MOONWHISPER": {
+    "character": "LYSANDER MOONWHISPER",
+    "language": "en",
+    "gender": "male",
+    "archetype": "warm_male",
+    "voice_id": "en-US-SteffanNeural",
+    "pitch": "+0Hz",
+    "rate": "-1%",
+    "name": "Steffan",
+    "description": "Warm natural conversational male voice"
   }
 }

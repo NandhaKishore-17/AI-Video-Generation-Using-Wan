@@ -266,7 +266,6 @@ class WanLocalPipeline:
         loop = asyncio.get_running_loop()
 
         def _run_real_inference() -> None:
-            from diffusers.utils import export_to_video
             from PIL import Image
 
             if Path(image_path).exists():
@@ -301,7 +300,12 @@ class WanLocalPipeline:
             frames = output.frames[0]
             # ── Step 9: Saving real output video ────────────────────────────────
             logger.info("[STEP 9/9] Exporting REAL Wan2.2 video to %s...", output_path)
-            export_to_video(frames, output_path, fps=fps)
+            import imageio.v2 as imageio
+            import numpy as np
+            writer = imageio.get_writer(output_path, fps=fps, codec="libx264", quality=8)
+            for frame in frames:
+                writer.append_data(np.array(frame))
+            writer.close()
             logger.info("REAL Wan2.2 inference completed successfully. Saved video to %s", output_path)
 
         try:

@@ -5,6 +5,7 @@ import re
 from typing import Dict, Any, List
 from app.core.config import settings
 from app.engines.llm.ollama_client import ollama_client, OllamaError
+from pydantic import ValidationError
 from app.schemas.schemas import UniverseGeneratedData, ScreenplayData
 
 logger = logging.getLogger("llm_engine")
@@ -23,7 +24,7 @@ class QwenLLMEngine:
         for attempt in range(1, max_attempts + 1):
             if attempt > 1:
                 logger.info(f"Ollama generation retry attempt {attempt}/{max_attempts} due to error: {last_error}")
-                current_prompt = f"{prompt}\n\nYour previous response failed validation with error: {last_error}. Please fix it and return ONLY valid JSON matching the exact requested structure."
+                current_prompt = f"{prompt}\n\nYour previous response failed validation with error:\n{last_error}\n\nPlease fix the exact fields mentioned and return ONLY valid JSON matching the exact requested structure."
             else:
                 current_prompt = prompt
                 
@@ -45,6 +46,14 @@ class QwenLLMEngine:
                             raise ValueError(f"Invalid character in character_states: '{state_char}'. Must be one of: {allowed_speakers}")
                 
                 return data
+            except ValidationError as ve:
+                errors = []
+                for err in ve.errors():
+                    field = ".".join(str(loc) for loc in err["loc"])
+                    msg = err["msg"]
+                    errors.append(f"Field '{field}': {msg}")
+                last_error = " | ".join(errors)
+                logger.warning(f"Validation failed on attempt {attempt}: {last_error}")
             except Exception as e:
                 last_error = str(e)
                 logger.warning(f"Validation failed on attempt {attempt}: {last_error}")
@@ -52,7 +61,7 @@ class QwenLLMEngine:
         raise ValueError(f"Ollama failed to produce valid JSON after {max_attempts} attempts. Last error: {last_error}")
 
 
-    async def generate_universe_bible(self, title: str, genre: str, logline: str, world_rules: str = "") -> Dict[str, Any]:
+    async def generate_universe_bible(self, title: str, genre: str, logline: str, world_rules: str = "", rag_context: str = None) -> Dict[str, Any]:
         """
         Generates lore bible, factions, history, and key initial characters using local Ollama LLM.
         """
@@ -62,20 +71,58 @@ class QwenLLMEngine:
         print("Sending prompt to Ollama...")
         print(f"Model: {self.client.model}")
 
-        system_prompt = "You are a Master Worldbuilder & Showrunner. Return ONLY a valid raw JSON object matching the requested keys. No markdown, no commentary."
-        prompt = f"""
-        Act as a Master Worldbuilder & Showrunner. Create a deep Universe Bible for:
-        Title: {title}
-        Genre: {genre}
-        Logline: {logline}
-        World Rules: {world_rules}
+        if rag_context:
+            system_prompt = "You are a Master Worldbuilder & Showrunner. Create an ORIGINAL fictional universe based primarily on the user's requirements. Reference Knowledge is provided as contextual inspiration only. Do not reproduce the source material. Do not copy the source story. Do not copy source characters. Do not copy source locations. Do not copy source dialogue. Do not copy source plot structure verbatim. Transform relevant concepts into new original creative material. Return ONLY a valid raw JSON object matching the requested keys. No markdown, no commentary."
+            prompt = f"""
+            Act as a Master Worldbuilder & Showrunner. Create a deep Universe Bible. Use the reference knowledge only when it is relevant. Combine the user's requested universe with useful concepts, themes, world-building patterns, mythology, systems, conflicts, or other contextual information retrieved from the reference. Create a completely ORIGINAL universe.
+            
+            USER REQUIREMENTS:
+            Title: {title}
+            Genre: {genre}
+            Logline: {logline}
+            World Rules: {world_rules}
+            
+            {rag_context}
+            """
+        else:
+            system_prompt = "You are a Master Worldbuilder & Showrunner. Create an original fictional universe based on the user's requirements. Return ONLY a valid raw JSON object matching the requested keys. No markdown, no commentary."
+            prompt = f"""
+            Act as a Master Worldbuilder & Showrunner. Create a deep Universe Bible for:
+            Title: {title}
+            Genre: {genre}
+            Logline: {logline}
+            World Rules: {world_rules}
+            """
 
-        Return a valid JSON object with the following exact keys:
-        - "world_summary": Detailed description of the world
-        - "factions": List of key organizations/factions
-        - "historical_milestones": List of major past events
-        - "suggested_characters": Array of 3 key characters specifically tailored to '{title}', each with "name", "role", "personality", "appearance_prompt", "bio", "voice_actor_preset"
-        - "initial_story_arcs": Array of 2 story arcs, each with "title", "goal", "episodes_planned"
+        prompt += """
+        Return a valid JSON object matching EXACTLY this structure:
+        {
+          "world_summary": "Detailed description of the world",
+          "factions": [
+            {
+              "name": "Faction Name",
+              "description": "Faction description and purpose"
+            }
+          ],
+          "historical_milestones": ["Milestone 1", "Milestone 2"],
+          "suggested_characters": [
+            {
+              "name": "Character Name",
+              "role": "Role in story",
+              "personality": "Personality traits",
+              "appearance_prompt": "Cinematic photo description",
+              "bio": "Character background",
+              "voice_actor_preset": "Piper-Male-Cinematic-1"
+            }
+          ],
+          "initial_story_arcs": [
+            {
+              "title": "Arc Title",
+              "goal": "Arc Goal",
+              "episodes_planned": 5
+            }
+          ]
+        }
         """
 
         data = await self._generate_with_retry(system_prompt, prompt, schema_class=UniverseGeneratedData)
@@ -92,7 +139,9 @@ class QwenLLMEngine:
         current_arc: str,
         episode_number: int,
         custom_prompt: str = "",
-        universe_lore: str = ""
+        universe_lore: str = "",
+        reference_themes: List[str] = None,
+        reference_influence: str = "Medium"
     ) -> Dict[str, Any]:
         """
         Generates a cinematic episode screenplay with shot-by-shot breakdown using local Ollama LLM.
@@ -102,6 +151,10 @@ class QwenLLMEngine:
         memories_str = "\n- ".join(past_memories) if past_memories else "No previous episode memory."
         previous_episodes_str = "\n- ".join(previous_episode_summaries) if previous_episode_summaries else "No previous episode summaries available."
         lore_str = f"Universe Bible:\n{universe_lore}\n" if universe_lore else ""
+        
+        reference_str = ""
+        if reference_themes:
+            reference_str = "\nREFERENCE THEMES & PATTERNS (DO NOT COPY DIRECTLY):\n" + "\n".join(reference_themes) + f"\nInfluence Level: {reference_influence}"
 
         print(f"Loaded Universe: {universe_title}")
         print(f"Loaded Memory: {len(past_memories)} records")
@@ -158,6 +211,7 @@ CURRENT CHARACTER ROSTER:
 PREVIOUS EPISODE MEMORY:
 {previous_episodes_str}
 Past Context: {memories_str}
+{reference_str}
 
 USER STORY DIRECTION:
 {user_dir}
@@ -241,11 +295,12 @@ VALIDATION RULES:
 5. Do not repeat dialogue from previous episodes.
 6. Do not repeat previous episode summaries.
 7. Do not introduce characters outside the roster.
-8. Return syntactically valid JSON.
-9. Use normal JSON double quotes.
-10. No trailing commas.
-11. No comments.
-12. No Markdown fences.
+8. IF REFERENCE THEMES ARE PROVIDED: Use the themes and patterns as thematic inspiration ONLY. DO NOT copy the reference storyline. DO NOT use characters or locations from the reference material. Create an ORIGINAL story for the CURRENT CHARACTER ROSTER.
+9. Return syntactically valid JSON.
+10. Use normal JSON double quotes.
+11. No trailing commas.
+12. No comments.
+13. No Markdown fences.
 """
 
         print(f"Prompt Sent to Ollama:\n{prompt}")

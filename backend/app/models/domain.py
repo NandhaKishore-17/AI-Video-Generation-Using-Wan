@@ -167,3 +167,31 @@ class SchedulerConfig(Base):
     auto_publish = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class KnowledgeDocument(Base):
+    __tablename__ = "knowledge_documents"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_type = Column(String(50), nullable=False)
+    status = Column(String(50), default="PROCESSING")  # UPLOADED, PROCESSING, COMPLETED, FAILED
+    chunk_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    chunks = relationship("KnowledgeChunk", back_populates="document", cascade="all, delete-orphan")
+
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    document_id = Column(String, ForeignKey("knowledge_documents.id"), nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    text = Column(Text, nullable=False)
+    category = Column(String(100), nullable=True)  # THEME, CHARACTER_ARCHETYPE, etc.
+    metadata_json = Column(JSON, nullable=True)
+    
+    document = relationship("KnowledgeDocument", back_populates="chunks")
+

@@ -129,3 +129,12 @@ export interface AnalyticsData {
     qdrant_indexed_vectors: number;
   };
 }
+
+export interface KnowledgeDocument {
+  id: string;
+  name: string;
+  file_type: string;
+  status: string;
+  chunk_count: number;
+  created_at: string;
+}

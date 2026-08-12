@@ -9,8 +9,10 @@ from app.schemas.schemas import (
     TimelineEventCreate, TimelineEventResponse, StoryArcCreate, StoryArcResponse,
     EpisodeGenerateRequest, EpisodeResponse, EpisodeDetailResponse,
     VideoRenderRequest, RenderTaskResponse, MemoryQueryRequest, MemoryQueryResult,
-    SchedulerStartRequest, SchedulerStatusResponse
+    SchedulerStartRequest, SchedulerStatusResponse,
+    KnowledgeDocumentResponse, KnowledgeSearchRequest, KnowledgeSearchResult
 )
+from fastapi import File, UploadFile
 from app.modules.universe_engine import universe_module
 from app.modules.episode_generator import episode_generator
 from app.modules.scheduler import scheduler_module
@@ -18,6 +20,7 @@ from app.engines.memory_engine import memory_engine
 from app.engines.render_engine import render_engine
 from app.modules.social_publisher import social_publisher
 from services.tts.voice_manager import voice_manager
+from app.services.knowledge_service import knowledge_service
 
 router = APIRouter()
 
@@ -33,7 +36,9 @@ async def create_universe(payload: UniverseCreate, db: Session = Depends(get_db)
         title=payload.title,
         genre=payload.genre,
         logline=payload.logline,
-        world_rules=payload.world_rules or ""
+        world_rules=payload.world_rules or "",
+        use_reference_knowledge=payload.use_reference_knowledge,
+        reference_document_id=payload.reference_document_id
     )
     return universe
 
@@ -177,9 +182,31 @@ def create_character(payload: CharacterCreate, db: Session = Depends(get_db)):
         voice_speed=payload.voice_speed or 1.0,
         bio=payload.bio
     )
+    
+    print("\n" + "=" * 80)
+    print("VOICE SAVE REQUEST")
+    print(f"character_name = {payload.name}")
+    print(f"voice = {payload.voice_actor_preset}")
+    print("=" * 80 + "\n")
+    
     db.add(character)
     db.commit()
     db.refresh(character)
+    
+    print("\n" + "=" * 80)
+    print("VOICE SAVED")
+    print(f"character_id = {character.id}")
+    print(f"voice = {character.voice_actor_preset}")
+    print("=" * 80 + "\n")
+    
+    # Reload character
+    char_reloaded = db.query(Character).filter(Character.id == character.id).first()
+    print("\n" + "=" * 80)
+    print("VOICE AFTER DATABASE RELOAD")
+    print(f"character_id = {char_reloaded.id}")
+    print(f"voice = {char_reloaded.voice_actor_preset}")
+    print("=" * 80 + "\n")
+    
     return character
 
 
@@ -304,7 +331,13 @@ async def generate_episode(payload: EpisodeGenerateRequest, background_tasks: Ba
         raise HTTPException(status_code=404, detail="Universe not found")
 
     # 1. Obtain Story Brief from Story Director
-    brief = await story_director.prepare_next_episode_brief(db, payload.universe_id, payload.custom_prompt or "")
+    brief = await story_director.prepare_next_episode_brief(
+        db, 
+        payload.universe_id, 
+        payload.custom_prompt or "",
+        payload.reference_document_id,
+        payload.reference_influence
+    )
     
     # 2. Create Episode Record & RenderTask
     episode = Episode(
@@ -438,6 +471,41 @@ async def render_video(payload: VideoRenderRequest, db: Session = Depends(get_db
         db.commit()
     return task
 
+
+@router.get("/videos/download")
+def download_video(path: str):
+    """
+    Downloads a video file by its media path.
+    """
+    from pathlib import Path
+    from app.core.config import settings
+    from fastapi.responses import FileResponse
+    import os
+
+    if path.startswith("/media/"):
+        relative_path = path.replace("/media/", "", 1)
+        file_path = Path(settings.MEDIA_OUTPUT_DIR) / relative_path
+    else:
+        file_path = Path(path)
+
+    print("=" * 80)
+    print("VIDEO DOWNLOAD REQUEST")
+    print("file_path =", file_path)
+    print("exists =", file_path.exists())
+    print("size =", file_path.stat().st_size if file_path.exists() else None)
+    print("=" * 80)
+
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Video file not found: {file_path}"
+        )
+
+    return FileResponse(
+        path=str(file_path),
+        media_type="video/mp4",
+        filename=file_path.name
+    )
 
 @router.get("/videos/{video_id}")
 def get_video_status(video_id: str, db: Session = Depends(get_db)):
@@ -574,3 +642,60 @@ def get_analytics(db: Session = Depends(get_db)):
             "qdrant_indexed_vectors": 128
         }
     }
+
+
+# --- Knowledge Library API ---
+
+@router.post("/knowledge/upload", response_model=KnowledgeDocumentResponse)
+async def upload_knowledge(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Uploads a reference document and triggers chunking/embedding."""
+    try:
+        content = await file.read()
+        doc = await knowledge_service.process_upload(
+            file_name=file.filename,
+            file_content=content,
+            file_type=file.content_type or "text/plain",
+            db=db
+        )
+        return doc
+    except Exception as e:
+        import traceback
+        with open("upload_error.txt", "w") as f:
+            traceback.print_exc(file=f)
+        raise e
+
+@router.get("/knowledge", response_model=List[KnowledgeDocumentResponse])
+def list_knowledge(db: Session = Depends(get_db)):
+    """Lists all uploaded reference documents."""
+    from app.models.domain import KnowledgeDocument
+    return db.query(KnowledgeDocument).order_by(KnowledgeDocument.created_at.desc()).all()
+
+@router.get("/knowledge/{document_id}", response_model=KnowledgeDocumentResponse)
+def get_knowledge(document_id: str, db: Session = Depends(get_db)):
+    from app.models.domain import KnowledgeDocument
+    doc = db.query(KnowledgeDocument).filter(KnowledgeDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return doc
+
+@router.delete("/knowledge/{document_id}")
+def delete_knowledge(document_id: str, db: Session = Depends(get_db)):
+    from app.models.domain import KnowledgeDocument
+    doc = db.query(KnowledgeDocument).filter(KnowledgeDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    db.delete(doc)
+    db.commit()
+    
+    # In a full implementation, we'd also delete vectors from Qdrant here.
+    return {"message": f"Document {document_id} deleted."}
+
+@router.post("/knowledge/search", response_model=List[KnowledgeSearchResult])
+async def search_knowledge(payload: KnowledgeSearchRequest):
+    """Searches for relevant themes within reference documents."""
+    results = knowledge_service.retrieve_relevant_themes(
+        query=payload.query,
+        document_ids=payload.document_ids,
+        top_k=payload.top_k or 5
+    )
+    return results

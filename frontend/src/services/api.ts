@@ -1,7 +1,7 @@
 import axios from 'axios';
 import {
   Universe, Character, TimelineEvent, StoryArc, Episode, Scene, RenderTask,
-  SchedulerStatus, MemoryQueryResult, AnalyticsData
+  SchedulerStatus, MemoryQueryResult, AnalyticsData, KnowledgeDocument
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -148,27 +148,9 @@ const DEFAULT_EPISODES: Episode[] = [
 
 export const api = {
   // Universes
-  async createUniverse(payload: { title: string; genre: string; logline: string; world_rules?: string }): Promise<Universe> {
-    try {
-      const res = await axios.post(`${API_BASE}/universes`, payload);
-      return res.data;
-    } catch {
-      const newU: Universe = {
-        id: `u-${Date.now()}`,
-        title: payload.title,
-        genre: payload.genre,
-        logline: payload.logline,
-        world_rules: payload.world_rules,
-        auto_generate_active: true,
-        total_episodes: 0,
-        current_season: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      const existing = getLocalData<Universe[]>('universes', DEFAULT_UNIVERSES);
-      setLocalData('universes', [newU, ...existing]);
-      return newU;
-    }
+  async createUniverse(payload: { title: string; genre: string; logline: string; world_rules?: string, use_reference_knowledge?: boolean, reference_document_id?: string | null }): Promise<Universe> {
+    const res = await axios.post(`${API_BASE}/universes`, payload);
+    return res.data;
   },
 
   async deleteUniverse(id: string): Promise<void> {
@@ -195,69 +177,13 @@ export const api = {
   },
 
   async getUniverses(): Promise<Universe[]> {
-    try {
-      const res = await axios.get(`${API_BASE}/universes`);
-      if (res.data && res.data.length > 0) return res.data;
-    } catch {
-      // Fallback
-    }
-    return getLocalData<Universe[]>('universes', DEFAULT_UNIVERSES);
+    const res = await axios.get(`${API_BASE}/universes`);
+    return res.data || [];
   },
 
   async getUniverseDetail(id: string): Promise<any> {
-    try {
-      const res = await axios.get(`${API_BASE}/universes/${id}`);
-      return res.data;
-    } catch {
-      const universes = getLocalData<Universe[]>('universes', DEFAULT_UNIVERSES);
-      const u = universes.find(x => x.id === id) || universes[0] || DEFAULT_UNIVERSES[0];
-      const chars = getLocalData<Character[]>('characters', [
-        {
-          id: 'c1',
-          universe_id: id,
-          name: 'Kaelen Vance',
-          role: 'Protagonist',
-          personality: 'Stoic, brilliant hacker, quick combat reflex',
-          appearance_prompt: 'Gritty male cyberpunk hacker in leather trench coat with glowing blue eye lens',
-          voice_actor_preset: 'Piper-Male-Cinematic-1',
-          voice_pitch: 1.0,
-          voice_speed: 1.0,
-          relationships: { 'c2': 'Ally / Partner' },
-          bio: 'Former elite black-ops operative operating off the grid.',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'c2',
-          universe_id: id,
-          name: 'Nova Thorne',
-          role: 'Deuteragonist',
-          personality: 'Analytical cyber detective, ruthless investigator',
-          appearance_prompt: 'Female detective with short silver hair and holographic glass visor',
-          voice_actor_preset: 'Kokoro-Female-Cinematic-2',
-          voice_pitch: 1.0,
-          voice_speed: 1.0,
-          relationships: { 'c1': 'Trusted Ally' },
-          bio: 'Uncovers classified obsidian files.',
-          created_at: new Date().toISOString()
-        }
-      ]);
-      const timeline = getLocalData<TimelineEvent[]>('timeline', [
-        { id: 't1', timestamp: 'Year 2088', title: 'The AI Awakening', description: 'Quantum network gains self-awareness.', importance_score: 9, season: 1, episode_number: 1 },
-        { id: 't2', timestamp: 'Year 2095', title: 'Obsidian Corp Treaty', description: 'Corporate monopolies take over law enforcement.', importance_score: 8, season: 1, episode_number: 2 }
-      ]);
-      const arcs = getLocalData<StoryArc[]>('story_arcs', [
-        { id: 'sa1', title: 'Shadows of the Grid', goal: 'Expose the illegal neural harvesting ring', status: 'ACTIVE', season: 1, episodes_planned: 5, episodes_completed: 4 }
-      ]);
-      const eps = await this.getEpisodes(id);
-
-      return {
-        universe: u,
-        characters: chars,
-        timeline: timeline,
-        story_arcs: arcs,
-        episodes_summary: eps
-      };
-    }
+    const res = await axios.get(`${API_BASE}/universes/${id}`);
+    return res.data;
   },
 
   async createCharacter(payload: {
@@ -422,240 +348,47 @@ export const api = {
   },
 
   // Episodes Generation & Catalog
-  async generateEpisode(universe_id: string, custom_prompt?: string, scene_duration_seconds?: number): Promise<Episode> {
-    try {
-      const res = await axios.post(`${API_BASE}/episodes/generate`, { universe_id, custom_prompt, scene_duration_seconds });
-      if (res.data) {
-        // Cache created episode locally
-        const currentEps = getLocalData<Episode[]>('episodes', DEFAULT_EPISODES);
-        setLocalData('episodes', [res.data, ...currentEps]);
-        return res.data;
-      }
-    } catch {
-      // Fallback generator
-    }
-
-    const existingEps = getLocalData<Episode[]>('episodes', DEFAULT_EPISODES);
-    const universeEps = existingEps.filter(e => e.universe_id === universe_id);
-    const nextEpNum = universeEps.length + 1;
-    const secPerScene = scene_duration_seconds || 8.0;
-
-    const titles = [
-      "Signals in the Rain", "Holographic Deceptions", "Shadows of the Grid",
-      "The Obsidian Protocol", "Whispers of the Core AI", "Quantum Overdrive",
-      "Cybernetic Dawn", "The Neon Requiem"
-    ];
-    const chosenTitle = custom_prompt && custom_prompt.trim().length > 3
-      ? custom_prompt.trim().slice(0, 40)
-      : titles[(nextEpNum - 1) % titles.length];
-
-    const epId = `ep-gen-${Date.now()}`;
-    const newEp: Episode = {
-      id: epId,
-      universe_id: universe_id,
-      season: 1,
-      episode_number: nextEpNum,
-      title: `Episode ${nextEpNum}: ${chosenTitle}`,
-      logline: custom_prompt
-        ? `As plot direction unfolds: "${custom_prompt}", Kaelen and Nova execute a high-stakes data extraction mission.`
-        : `Kaelen Vance and Nova Thorne decode classified neural memory logs to prevent Director Vane's obsidian lockdown.`,
-      summary: custom_prompt
-        ? `A tightly plotted episode that follows the team's response to the prompt: ${custom_prompt}.`
-        : `A dramatic continuation of the cyberpunk conspiracy with a fresh reveal and escalating stakes.`,
-      status: 'COMPLETED',
-      duration_seconds: secPerScene * 3,
-      final_video_url: '/media/video_scene1.mp4',
-      thumbnail_url: (nextEpNum % 2 === 0) ? '/media/image_scene2.png' : '/media/image_scene1.png',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      scenes: [
-        {
-          id: `sc-${epId}-1`,
-          episode_id: epId,
-          scene_number: 1,
-          location: 'EXT. HIGH-TECH RAIN HIGHWAY - NIGHT',
-          time_of_day: 'NIGHT',
-          visual_description: `Kaelen Vance speeds past rain-soaked neon spires towards the server vault for ${chosenTitle}.`,
-          image_prompt: 'Cinematic wide shot of Kaelen Vance driving hover motorcycle through rainy neon street, 8k wallpaper',
-          video_motion_prompt: 'Dynamic tracking camera shot following hovercycle through wet rain reflections',
-          dialogue_script: [
-            { speaker: 'Kaelen Vance', line: `The grid frequency is fluctuating... someone breached the core mainframe.` },
-            { speaker: 'Nova Thorne', line: `Be careful, Kaelen. Security drones were dispatched two minutes ago.` }
-          ],
-          image_url: '/media/image_scene1.png',
-          video_url: '/media/video_scene1.mp4',
-          audio_url: '/media/audio_scene1.wav',
-          subtitle_srt: `1\n00:00:00,500 --> 00:00:04,500\nKAELEN VANCE: The grid frequency is fluctuating...\n`,
-          duration_seconds: secPerScene
-        },
-        {
-          id: `sc-${epId}-2`,
-          episode_id: epId,
-          scene_number: 2,
-          location: 'INT. DATA VAULT SANCTUARY - NIGHT',
-          time_of_day: 'NIGHT',
-          visual_description: 'Nova Thorne analyzes glowing blue holographic telemetry inside the server vault.',
-          image_prompt: 'Medium cinematic shot of Nova Thorne inspecting glowing blue holographic interface',
-          video_motion_prompt: 'Slow push-in shot onto character eyes, holographic light flickering smoothly',
-          dialogue_script: [
-            { speaker: 'Nova Thorne', line: `This isn't a breach... it's a message left by the first AI system.` },
-            { speaker: 'Kaelen Vance', line: `What does it say?` }
-          ],
-          image_url: '/media/image_scene2.png',
-          video_url: '/media/video_scene2.mp4',
-          audio_url: '/media/audio_scene2.wav',
-          subtitle_srt: `1\n00:00:00,500 --> 00:00:04,500\nNOVA THORNE: This isn't a breach...\n`,
-          duration_seconds: secPerScene
-        },
-        {
-          id: `sc-${epId}-3`,
-          episode_id: epId,
-          scene_number: 3,
-          location: 'INT. OBSIDIAN CONTROL VAULT - NIGHT',
-          time_of_day: 'NIGHT',
-          visual_description: 'Director Vane overlooks the quantum supercomputer vault while red emergency alarms pulse.',
-          image_prompt: 'Intense cinematic shot of Director Vane overlooking high-tech quantum supercomputer vault',
-          video_motion_prompt: 'Slow tracking pan following Director Vane as holographic alarm telemetry streams past',
-          dialogue_script: [
-            { speaker: 'Director Vane', line: `Initiate protocol override... prevent data extraction at all costs.` },
-            { speaker: 'Kaelen Vance', line: `Too late, Director. We already hold the encryption key.` }
-          ],
-          image_url: '/media/image_scene1.png',
-          video_url: '/media/video_scene1.mp4',
-          audio_url: '/media/audio_scene1.wav',
-          subtitle_srt: `1\n00:00:00,500 --> 00:00:04,500\nDIRECTOR VANE: Initiate protocol override...\n`,
-          duration_seconds: secPerScene
+  async generateEpisode(universe_id: string, custom_prompt?: string, scene_duration_seconds?: number, reference_document_id?: string, reference_influence?: string): Promise<Episode> {
+    const res = await axios.post(`${API_BASE}/episodes/generate`, { universe_id, custom_prompt, scene_duration_seconds, reference_document_id, reference_influence });
+    if (res.data) {
+      const currentEps = getLocalData<Episode[]>('episodes', []);
+      setLocalData('episodes', [res.data, ...currentEps]);
+      
+      const universes = getLocalData<Universe[]>('universes', []);
+      const updatedUniverses = universes.map(u => {
+        if (u.id === universe_id) {
+          return { ...u, total_episodes: (u.total_episodes || 0) + 1 };
         }
-      ]
-    };
-
-    const updatedEps = [newEp, ...existingEps];
-    setLocalData('episodes', updatedEps);
-
-    // Update universe total_episodes
-    const universes = getLocalData<Universe[]>('universes', DEFAULT_UNIVERSES);
-    const updatedUniverses = universes.map(u => {
-      if (u.id === universe_id) {
-        return { ...u, total_episodes: (u.total_episodes || 0) + 1 };
-      }
-      return u;
-    });
-    setLocalData('universes', updatedUniverses);
-
-    return newEp;
+        return u;
+      });
+      setLocalData('universes', updatedUniverses);
+      
+      return res.data;
+    }
+    throw new Error("Failed to generate episode");
   },
 
   async getEpisodes(universe_id?: string): Promise<Episode[]> {
-    let apiEps: Episode[] = [];
-    try {
-      const res = await axios.get(`${API_BASE}/episodes`, { params: { universe_id } });
-      if (res.data && res.data.length > 0) {
-        apiEps = res.data;
-      }
-    } catch {
-      // Fallback
+    const res = await axios.get(`${API_BASE}/episodes`, { params: { universe_id } });
+    if (res.data && res.data.length > 0) {
+      return res.data.sort((a: Episode, b: Episode) => b.episode_number - a.episode_number);
     }
-
-    const localEps = getLocalData<Episode[]>('episodes', DEFAULT_EPISODES);
-    const combinedMap = new Map<string, Episode>();
-    
-    // Add local episodes first
-    localEps.forEach(e => combinedMap.set(e.id, e));
-    // Overlay API episodes
-    apiEps.forEach(e => combinedMap.set(e.id, e));
-
-    let list = Array.from(combinedMap.values());
-    if (universe_id) {
-      list = list.filter(e => e.universe_id === universe_id || !e.universe_id);
-    }
-    return list.sort((a, b) => b.episode_number - a.episode_number);
+    return [];
   },
 
   async getEpisodeDetail(id: string): Promise<Episode> {
-    try {
-      const res = await axios.get(`${API_BASE}/episodes/${id}`);
-      if (res.data) return res.data;
-    } catch {
-      // Fallback
+    const res = await axios.get(`${API_BASE}/episodes/${id}`);
+    if (res.data) {
+      return res.data;
     }
-
-    const eps = getLocalData<Episode[]>('episodes', DEFAULT_EPISODES);
-    const found = eps.find(e => e.id === id);
-    if (found) return found;
-
-    return {
-      id: id,
-      universe_id: 'u-cyber-99',
-      season: 1,
-      episode_number: 1,
-      title: 'Episode 1: Signals in the Rain',
-      logline: 'Kaelen receives an encrypted transmission pointing to an abandoned server vault beneath Sektor 7.',
-      summary: 'Episode 1 establishes the core conflict and introduces the hacker protagonist infiltrating the corporate network.',
-      status: 'COMPLETED',
-      duration_seconds: 19.5,
-      final_video_url: '/media/video_scene1.mp4',
-      thumbnail_url: '/media/image_scene1.png',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      scenes: [
-        {
-          id: 'sc-1',
-          episode_id: id,
-          scene_number: 1,
-          location: 'EXT. RAIN-SWEPT HIGHWAY - NIGHT',
-          time_of_day: 'NIGHT',
-          visual_description: 'Rain heavy on neon-slick asphalt. Kaelen Vance rides a matte-black hovercycle towards Sektor 7.',
-          image_prompt: 'Cinematic wide shot of Kaelen Vance riding futuristic hover bike through rainy neon street, 8k wallpaper',
-          video_motion_prompt: 'Dynamic tracking camera shot following hovercycle through wet rain reflections',
-          dialogue_script: [
-            { speaker: 'Kaelen Vance', line: 'The grid frequency is fluctuating... someone breached the mainframe.' },
-            { speaker: 'Nova Thorne', line: 'Be careful, Kaelen. Hunter drones were dispatched two minutes ago.' }
-          ],
-          image_url: '/media/image_scene1.png',
-          video_url: '/media/video_scene1.mp4',
-          audio_url: '/media/audio_scene1.wav',
-          subtitle_srt: '1\n00:00:00,500 --> 00:00:03,500\nKAELEN VANCE: The grid frequency is fluctuating...\n',
-          duration_seconds: 6.5
-        },
-        {
-          id: 'sc-2',
-          episode_id: id,
-          scene_number: 2,
-          location: 'INT. ABANDONED DATA SANCTUARY - NIGHT',
-          time_of_day: 'NIGHT',
-          visual_description: 'Nova analyzes floating blue holographic data streams in an abandoned server vault.',
-          image_prompt: 'Medium cinematic shot of Nova Thorne with silver hair inspecting glowing blue holographic interface',
-          video_motion_prompt: 'Slow push-in shot onto character eyes, holographic light flickering smoothly',
-          dialogue_script: [
-            { speaker: 'Nova Thorne', line: 'This isn’t a breach... it’s a message left by the first AI system.' },
-            { speaker: 'Kaelen Vance', line: 'What does it say?' }
-          ],
-          image_url: '/media/image_scene2.png',
-          video_url: '/media/video_scene2.mp4',
-          audio_url: '/media/audio_scene2.wav',
-          subtitle_srt: '1\n00:00:00,500 --> 00:00:03,500\nNOVA THORNE: This isn\'t a breach...\n',
-          duration_seconds: 6.5
-        }
-      ]
-    };
+    throw new Error("Episode not found");
   },
 
   // Videos & Renders
   async renderVideo(episode_id: string, aspect_ratio = '16:9'): Promise<RenderTask> {
-    try {
-      const res = await axios.post(`${API_BASE}/videos/render`, { episode_id, aspect_ratio });
-      return res.data;
-    } catch {
-      return {
-        id: `render-${Date.now()}`,
-        episode_id,
-        stage: 'DONE',
-        progress_percentage: 100,
-        current_step_details: 'Render completed successfully',
-        started_at: new Date().toISOString(),
-        completed_at: new Date().toISOString()
-      };
-    }
+    const res = await axios.post(`${API_BASE}/videos/render`, { episode_id, aspect_ratio });
+    if (res.data) return res.data;
+    throw new Error("Render failed");
   },
 
   async getVideoStatus(id: string): Promise<any> {
@@ -798,5 +531,28 @@ export const api = {
         }
       };
     }
+  },
+
+  // Knowledge Library
+  async uploadKnowledge(file: File): Promise<KnowledgeDocument> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await axios.post(`${API_BASE}/knowledge/upload`, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  },
+
+  async getKnowledgeList(): Promise<KnowledgeDocument[]> {
+    try {
+      const res = await axios.get(`${API_BASE}/knowledge`);
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async deleteKnowledge(id: string): Promise<void> {
+    await axios.delete(`${API_BASE}/knowledge/${id}`);
   }
 };

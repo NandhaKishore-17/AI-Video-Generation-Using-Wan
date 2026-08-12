@@ -8,6 +8,8 @@ class UniverseCreate(BaseModel):
     genre: str = Field(..., example="Sci-Fi / Cyberpunk Noir")
     logline: str = Field(..., example="In a neon-drenched metropolis controlled by rogue AIs, a renegade hacker and a disgraced detective uncover a conspiracy that threatens human consciousness.")
     world_rules: Optional[str] = Field(None, example="1. High-tech cybernetics are mandatory. 2. The Sun rarely shines through atmospheric smog. 3. Memory chips can be stolen.")
+    use_reference_knowledge: Optional[bool] = Field(False, example=False)
+    reference_document_id: Optional[str] = Field(None, example="doc-uuid")
 
 class UniverseResponse(BaseModel):
     id: str
@@ -117,6 +119,8 @@ class EpisodeGenerateRequest(BaseModel):
     universe_id: str
     custom_prompt: Optional[str] = None
     scene_duration_seconds: Optional[float] = 8.0
+    reference_document_id: Optional[str] = None
+    reference_influence: Optional[str] = "Medium"  # Low, Medium, High
 
 class SceneResponse(BaseModel):
     id: str
@@ -247,9 +251,37 @@ class ScreenplayData(BaseModel):
     new_items: List[str] = []
     scenes: List[SceneData]
 
+class FactionSchema(BaseModel):
+    name: str
+    description: str
+
 class UniverseGeneratedData(BaseModel):
     world_summary: str
-    factions: List[str] = []
+    factions: List[FactionSchema] = []
     historical_milestones: List[Any] = []
     suggested_characters: List[Dict[str, Any]] = []
     initial_story_arcs: List[Dict[str, Any]] = []
+
+
+# --- Knowledge Reference Schemas ---
+class KnowledgeDocumentResponse(BaseModel):
+    id: str
+    name: str
+    file_type: str
+    status: str
+    chunk_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class KnowledgeSearchRequest(BaseModel):
+    query: str
+    document_ids: Optional[List[str]] = None
+    top_k: Optional[int] = 5
+
+class KnowledgeSearchResult(BaseModel):
+    text: str
+    score: float
+    metadata: Dict[str, Any]
+

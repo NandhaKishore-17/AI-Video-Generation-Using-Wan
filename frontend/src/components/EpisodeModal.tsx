@@ -14,13 +14,17 @@ export const EpisodeModal: React.FC<EpisodeModalProps> = ({ episode, onClose }) 
   const [activeTab, setActiveTab] = useState<'video' | 'script'>('video');
   const [fullEpisodeDetail, setFullEpisodeDetail] = useState<Episode | null>(null);
 
+  const pollCountRef = React.useRef(0);
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (episode) {
       loadDetail(episode.id);
+      pollCountRef.current = 0;
       
       interval = setInterval(() => {
-        if (fullEpisodeDetail && (fullEpisodeDetail.status === 'COMPLETED' || fullEpisodeDetail.status === 'FAILED')) {
+        pollCountRef.current += 1;
+        if (fullEpisodeDetail && (fullEpisodeDetail.status === 'COMPLETED' || fullEpisodeDetail.status === 'FAILED') || pollCountRef.current > 200) {
           clearInterval(interval);
         } else {
           loadDetail(episode.id);
@@ -80,14 +84,45 @@ export const EpisodeModal: React.FC<EpisodeModalProps> = ({ episode, onClose }) 
             </div>
 
             {currentEp.final_video_url && (
-              <a
-                href={currentEp.final_video_url}
-                download
+              <button
+                onClick={async () => {
+                  try {
+                    const downloadUrl = `/api/v1/videos/download?path=${encodeURIComponent(currentEp.final_video_url!)}`;
+                    const res = await fetch(downloadUrl);
+                    if (!res.ok) {
+                      const errorText = await res.text();
+                      throw new Error(`Video download failed: ${res.status} ${errorText}`);
+                    }
+                    const blob = await res.blob();
+                    
+                    console.log("VIDEO DOWNLOAD");
+                    console.log("status:", res.status);
+                    console.log("contentType:", res.headers.get("content-type"));
+                    console.log("blobType:", blob.type);
+                    console.log("blobSize:", blob.size);
+
+                    if (blob.size === 0) {
+                      throw new Error("Downloaded video is empty");
+                    }
+                    
+                    const objectUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    link.download = `${(currentEp.title || 'episode').replace(/[^a-zA-Z0-9_-]/g, '_')}.mp4`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(objectUrl);
+                  } catch (err) {
+                    console.error('Failed to download video:', err);
+                    alert('Failed to download video file. The file may not exist yet or an error occurred.');
+                  }
+                }}
                 className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs font-mono flex items-center space-x-1 shadow-glow-cyan"
               >
                 <Download className="w-4 h-4" />
                 <span>DOWNLOAD MP4</span>
-              </a>
+              </button>
             )}
 
             <button

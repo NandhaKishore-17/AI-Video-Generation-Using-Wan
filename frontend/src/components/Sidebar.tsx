@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  LayoutDashboard, Globe, Users, Clock, Library, Brain,
+  LayoutDashboard, Globe, Users, Clock, Library, Brain, BookOpen,
   FileVideo, Video, ListOrdered, Calendar, BarChart3, Settings
 } from 'lucide-react';
 
@@ -11,6 +11,7 @@ export type PageId =
   | 'timeline'
   | 'episodes'
   | 'memory'
+  | 'knowledge'
   | 'assets'
   | 'videos'
   | 'render_queue'
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onSelectPage }) =>
     { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'episodes', label: 'Episode Library', icon: Library },
     { id: 'memory', label: 'Memory Explorer', icon: Brain },
+    { id: 'knowledge', label: 'Knowledge Library', icon: BookOpen },
     { id: 'assets', label: 'Asset Library', icon: FileVideo },
     { id: 'videos', label: 'Video Library', icon: Video },
     { id: 'render_queue', label: 'Render Queue', icon: ListOrdered },

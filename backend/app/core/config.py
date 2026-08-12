@@ -9,6 +9,7 @@ OUTPUT_DIR = BASE_DIR / "media_output"
 TEMP_DIR = BASE_DIR / "temp"
 
 class Settings(BaseSettings):
+    BASE_DIR: str = str(Path(__file__).resolve().parents[2])
     PROJECT_NAME: str = "AI Story Universe Platform"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"

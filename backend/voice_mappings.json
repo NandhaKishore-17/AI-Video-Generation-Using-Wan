@@ -174,5 +174,93 @@
     "rate": "+0%",
     "name": "Brian (Multilingual)",
     "description": "Hyper-realistic conversational human male voice"
+  },
+  "AETHON DARKHAVEN": {
+    "character": "AETHON DARKHAVEN",
+    "language": "en",
+    "gender": "male",
+    "archetype": "calm_male",
+    "voice_id": "en-US-EricNeural",
+    "pitch": "+0Hz",
+    "rate": "-2%",
+    "name": "Eric",
+    "description": "Calm and articulate professional male voice"
+  },
+  "AETHON": {
+    "character": "AETHON",
+    "language": "en",
+    "gender": "male",
+    "archetype": "multilingual_male",
+    "voice_id": "en-US-BrianMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Brian (Multilingual)",
+    "description": "Hyper-realistic conversational human male voice"
+  },
+  "MAX": {
+    "character": "MAX",
+    "language": "en",
+    "gender": "male",
+    "archetype": "multilingual_male",
+    "voice_id": "en-US-BrianMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Brian (Multilingual)",
+    "description": "Hyper-realistic conversational human male voice"
+  },
+  "IMPERIAL SPYMASTER": {
+    "character": "IMPERIAL SPYMASTER",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_villain_male",
+    "voice_id": "en-AU-WilliamNeural",
+    "pitch": "-6Hz",
+    "rate": "-5%",
+    "name": "William",
+    "description": "Deep authoritative villain male voice"
+  },
+  "MYSTERIOUS FIGURE": {
+    "character": "MYSTERIOUS FIGURE",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_male",
+    "voice_id": "en-US-ChristopherNeural",
+    "pitch": "-4Hz",
+    "rate": "-3%",
+    "name": "Christopher",
+    "description": "Resonant deep cinematic male voice"
+  },
+  "LYRIEN": {
+    "character": "LYRIEN",
+    "language": "en",
+    "gender": "male",
+    "archetype": "british_male",
+    "voice_id": "en-GB-RyanNeural",
+    "pitch": "-1Hz",
+    "rate": "-2%",
+    "name": "Ryan (British)",
+    "description": "Polished British cinematic male voice"
+  },
+  "A MYSTERIOUS VOICE": {
+    "character": "A MYSTERIOUS VOICE",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_villain_male",
+    "voice_id": "en-AU-WilliamNeural",
+    "pitch": "-6Hz",
+    "rate": "-5%",
+    "name": "William",
+    "description": "Deep authoritative villain male voice"
+  },
+  "UNKNOWN ALLY": {
+    "character": "UNKNOWN ALLY",
+    "language": "en",
+    "gender": "male",
+    "archetype": "multilingual_male",
+    "voice_id": "en-US-BrianMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Brian (Multilingual)",
+    "description": "Hyper-realistic conversational human male voice"
   }
 }

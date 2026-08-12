@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { api } from '../services/api';
-import { Universe } from '../types';
-import { Plus, Globe, Sparkles, BookOpen, Layers, Trash2, RefreshCw } from 'lucide-react';
+import { Universe, KnowledgeDocument } from '../types';
+import { Plus, Globe, Sparkles, BookOpen, Layers, Trash2, RefreshCw, Database } from 'lucide-react';
 
 interface UniverseManagerProps {
   activeUniverseId?: string;
@@ -16,12 +16,22 @@ export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverse
   const [genre, setGenre] = useState('');
   const [logline, setLogline] = useState('');
   const [rules, setRules] = useState('');
+  const [useReference, setUseReference] = useState(false);
+  const [referenceId, setReferenceId] = useState('');
+  const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     loadUniverses();
+    loadKnowledgeDocs();
   }, []);
+
+  const loadKnowledgeDocs = async () => {
+    const docs = await api.getKnowledgeList();
+    const readyDocs = docs.filter(d => d.status === 'COMPLETED' || d.status === 'READY');
+    setKnowledgeDocs(readyDocs);
+  };
 
   const loadUniverses = async () => {
     const data = await api.getUniverses();
@@ -32,12 +42,25 @@ export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverse
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !genre || !logline) return;
+    if (useReference && !referenceId) {
+      alert("Please select a reference document or turn off Reference Knowledge.");
+      return;
+    }
     setLoading(true);
-    const created = await api.createUniverse({ title, genre, logline, world_rules: rules });
+    const created = await api.createUniverse({ 
+      title, 
+      genre, 
+      logline, 
+      world_rules: rules,
+      use_reference_knowledge: useReference,
+      reference_document_id: useReference ? referenceId : null
+    });
     setTitle('');
     setGenre('');
     setLogline('');
     setRules('');
+    setUseReference(false);
+    setReferenceId('');
     setLoading(false);
     await loadUniverses();
     if (created && created.id && onSelectUniverse) {
@@ -145,6 +168,55 @@ export const UniverseManager: React.FC<UniverseManagerProps> = ({ activeUniverse
                 rows={2}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
               />
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/50">
+              <label className="block text-slate-400 font-mono mb-2 flex items-center space-x-2">
+                <Database className="w-3.5 h-3.5" />
+                <span>REFERENCE KNOWLEDGE</span>
+              </label>
+              <div className="flex space-x-4 mb-3">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="use_rag"
+                    checked={!useReference}
+                    onChange={() => setUseReference(false)}
+                    className="text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900 bg-slate-900 border-slate-700"
+                  />
+                  <span className="text-slate-300">OFF</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="use_rag"
+                    checked={useReference}
+                    onChange={() => setUseReference(true)}
+                    className="text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900 bg-slate-900 border-slate-700"
+                  />
+                  <span className="text-slate-300">ON</span>
+                </label>
+              </div>
+
+              {useReference && (
+                <div>
+                  <select
+                    value={referenceId}
+                    onChange={(e) => setReferenceId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="" disabled>Select Reference Document ▼</option>
+                    {knowledgeDocs.map(doc => (
+                      <option key={doc.id} value={doc.id}>{doc.name}</option>
+                    ))}
+                  </select>
+                  {knowledgeDocs.length === 0 && (
+                    <p className="text-[10px] text-amber-500 mt-1">
+                      No ready documents found. Go to Reference Knowledge Library to upload and process documents first.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <button

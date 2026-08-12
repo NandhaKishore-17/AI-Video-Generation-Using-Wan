@@ -63,7 +63,9 @@ class VoiceGenerationEngine:
                 "speaker": speaker,
                 "line": text_val,
                 "text": text_val,
-                "context": item.get("context", "")
+                "context": item.get("context", ""),
+                "voice_id": item.get("voice_id"),
+                "character_id": item.get("character_id")
             })
 
         # Process dialogue lines through services.tts pipeline

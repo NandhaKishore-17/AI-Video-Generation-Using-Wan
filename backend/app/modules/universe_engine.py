@@ -3,6 +3,7 @@ import logging
 from typing import Any
 from app.models.domain import Universe, Character, TimelineEvent, StoryArc
 from app.engines.llm_engine import llm_engine
+from app.services.knowledge_service import knowledge_service
 
 logger = logging.getLogger("universe_engine")
 
@@ -39,7 +40,9 @@ class UniverseEngineModule:
         title: str,
         genre: str,
         logline: str,
-        world_rules: str = ""
+        world_rules: str = "",
+        use_reference_knowledge: bool = False,
+        reference_document_id: str = None
     ) -> Universe:
         try:
             # 1. Create base Universe record
@@ -53,8 +56,38 @@ class UniverseEngineModule:
             db.add(universe)
             db.flush()  # Populate universe.id without committing
 
-            # 2. Generate detailed Bible via Qwen LLM Engine
-            bible_data = await llm_engine.generate_universe_bible(title, genre, logline, world_rules)
+            # 2. Build Optional RAG Context
+            rag_context = None
+            if use_reference_knowledge and reference_document_id:
+                try:
+                    user_prompt = f"{title}\n{genre}\n{logline}\n{world_rules}"
+                    retrieved_chunks = knowledge_service.retrieve_relevant_themes(
+                        query=user_prompt,
+                        document_ids=[reference_document_id],
+                        top_k=5
+                    )
+                    
+                    if retrieved_chunks:
+                        context_parts = []
+                        context_parts.append("REFERENCE CONTEXT")
+                        
+                        source_name = retrieved_chunks[0].get("metadata", {}).get("document_name", "Reference Document")
+                        context_parts.append(f"Source: {source_name}")
+                        
+                        for i, chunk in enumerate(retrieved_chunks, 1):
+                            context_parts.append(f"\nRelevant Passage {i}:\n{chunk.get('text', '')}")
+                        
+                        context_parts.append("\nEND REFERENCE CONTEXT")
+                        rag_context = "\n".join(context_parts)
+                        logger.info(f"RAG Context successfully built for {title} (Retrieved {len(retrieved_chunks)} chunks)")
+                    else:
+                        logger.warning(f"RAG was enabled for {title} but no relevant chunks were retrieved.")
+                except Exception as e:
+                    logger.error(f"Failed to retrieve reference knowledge: {e}")
+                    # Fail open: proceed without context if retrieval fails but continue logging
+
+            # 3. Generate detailed Bible via Qwen LLM Engine
+            bible_data = await llm_engine.generate_universe_bible(title, genre, logline, world_rules, rag_context)
             
             # Since the LLM returns Pydantic models in our updated llm_engine, we need to access via attributes.
             # Wait, our llm_engine returns a dictionary because _generate_with_retry ends with `return data`.

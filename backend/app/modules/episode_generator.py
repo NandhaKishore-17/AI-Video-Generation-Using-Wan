@@ -110,7 +110,9 @@ class EpisodeGeneratorModule:
                     current_arc=brief["active_arc"],
                     episode_number=episode_number,
                     custom_prompt=attempt_prompt,
-                    universe_lore=brief.get("universe_lore", "")
+                    universe_lore=brief.get("universe_lore", ""),
+                    reference_themes=brief.get("reference_themes", []),
+                    reference_influence=brief.get("reference_influence", "Medium")
                 )
                 
                 # Check uniqueness
@@ -178,8 +180,17 @@ class EpisodeGeneratorModule:
                     "id": c.get("id"),
                     "name": c.get("name"),
                     "role": c.get("role"),
-                    "personality": c.get("personality")
+                    "personality": c.get("personality"),
+                    "voice_actor_preset": c.get("voice_actor_preset")
                 })
+
+            print("\n" + "=" * 80)
+            print("EPISODE CHARACTERS")
+            for c in chars_for_dialogue:
+                print(f"ID: {c.get('id')}")
+                print(f"NAME: {c.get('name')}")
+                print(f"VOICE: {c.get('voice_actor_preset')}\n")
+            print("=" * 80 + "\n")
 
             for idx, scene_info in enumerate(scenes_data, 1):
                 # Update progress
@@ -225,6 +236,26 @@ class EpisodeGeneratorModule:
                     dialogue_script = dialogue_res.get("dialogue", [])
                     if not dialogue_script:
                         raise ValueError("No valid dialogue returned by Ollama.")
+                        
+                    # Inject voice_actor_preset and character_id into dialogue script
+                    for line in dialogue_script:
+                        speaker_name = line.get("speaker")
+                        if speaker_name:
+                            for c in chars_for_dialogue:
+                                c_name = c.get("name", "").lower()
+                                if c_name == speaker_name.lower() or c_name in speaker_name.lower() or speaker_name.lower() in c_name:
+                                    line["voice_id"] = c.get("voice_actor_preset")
+                                    line["character_id"] = c.get("id")
+                                    
+                                    print("\n" + "=" * 80)
+                                    print("CHARACTER RESOLUTION")
+                                    print("speaker =", speaker_name)
+                                    print("character =", c)
+                                    print("character.voice =", repr(c.get("voice_actor_preset")))
+                                    print("=" * 80 + "\n")
+                                    
+                                    break
+                                    
                     accumulated_dialogue.extend(dialogue_script)
                 except Exception as e:
                     logger.error(f"[DIALOGUE] Validation failed for scene {idx}: {e}")

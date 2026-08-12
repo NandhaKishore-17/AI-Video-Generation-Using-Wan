@@ -218,6 +218,8 @@ class FFmpegVideoRenderEngine:
             if not self._verify_audio_stream(output_path):
                 raise ValueError("Final MP4 has no audio stream! Muxing failed.")
                 
+            self._validate_and_print_final_video(output_path)
+                
             return f"/media/{output_filename}"
         except Exception as e:
             logger.warning(f"FFmpeg execution failed: {e}. Executing direct audio-video multiplex fallback.")
@@ -234,7 +236,8 @@ class FFmpegVideoRenderEngine:
                         "-i", primary_audio,
                         "-map", "0:v:0",
                         "-map", "1:a:0",
-                        "-c:v", "copy",
+                        "-c:v", "libx264",
+                        "-pix_fmt", "yuv420p",
                         "-c:a", "aac",
                         "-b:a", "192k",
                         "-shortest",
@@ -245,6 +248,8 @@ class FFmpegVideoRenderEngine:
                     if not self._verify_audio_stream(output_path):
                         raise ValueError("Fallback Final MP4 has no audio stream!")
                         
+                    self._validate_and_print_final_video(output_path)
+                        
                     return f"/media/{output_filename}"
                 except Exception as fb_err:
                     logger.warning(f"Fallback multiplex failed: {fb_err}")
@@ -253,6 +258,65 @@ class FFmpegVideoRenderEngine:
             return f"/media/{primary_name}"
 
         return f"/media/{output_filename}"
+
+    def _validate_and_print_final_video(self, video_path: str):
+        if not os.path.exists(video_path):
+            raise RuntimeError(f"Video file {video_path} does not exist.")
+        
+        file_size = os.path.getsize(video_path)
+        if file_size == 0:
+            raise RuntimeError(f"Video file {video_path} is 0 bytes.")
+            
+        import subprocess
+        import json
+        ffmpeg_exe = self._get_ffmpeg_exe()
+        ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+        if not os.path.exists(ffprobe_exe):
+            logger.warning("ffprobe not found, skipping deep validation.")
+            return
+
+        cmd = [
+            ffprobe_exe,
+            "-v", "error",
+            "-show_format",
+            "-show_streams",
+            "-of", "json",
+            video_path
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"ffprobe validation failed: {res.stderr}")
+            
+        data = json.loads(res.stdout)
+        format_name = data.get("format", {}).get("format_name", "")
+        duration = data.get("format", {}).get("duration", "unknown")
+        
+        streams = data.get("streams", [])
+        v_stream = next((s for s in streams if s.get("codec_type") == "video"), None)
+        a_stream = next((s for s in streams if s.get("codec_type") == "audio"), None)
+        
+        v_codec = v_stream.get("codec_name") if v_stream else "None"
+        a_codec = a_stream.get("codec_name") if a_stream else "None"
+        
+        vlc_compatible = "PASS" if ("mp4" in format_name and v_codec == "h264" and a_codec == "aac") else "FAIL"
+        
+        print("\n" + "=" * 50)
+        print("FINAL MEDIA VALIDATION")
+        print("=" * 50)
+        print(f"\nFILE:\n{video_path}\n")
+        print("EXISTS:\ntrue\n")
+        print(f"SIZE:\n{file_size}\n")
+        print(f"CONTAINER:\n{format_name}\n")
+        print(f"VIDEO:\n{v_codec}\n")
+        print(f"AUDIO:\n{a_codec}\n")
+        print(f"DURATION:\n{duration}\n")
+        print(f"VIDEO STREAM:\n{'true' if v_stream else 'false'}\n")
+        print(f"AUDIO STREAM:\n{'true' if a_stream else 'false'}\n")
+        print(f"VLC COMPATIBILITY:\n{vlc_compatible}")
+        print("=" * 50 + "\n")
+        
+        if vlc_compatible == "FAIL":
+             logger.warning(f"Validation WARNING: Video may not be fully compatible. format: {format_name}, video: {v_codec}, audio: {a_codec}")
 
 render_engine = FFmpegVideoRenderEngine()
 

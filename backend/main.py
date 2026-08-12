@@ -61,13 +61,11 @@ app.add_middleware(
 )
 
 # Mount root media folder to serve job-specific and episode-specific assets at /media
-from app.core.config import BASE_DIR
-media_root_dir = os.path.join(BASE_DIR, "media")
+media_root_dir = settings.MEDIA_OUTPUT_DIR
 os.makedirs(media_root_dir, exist_ok=True)
 app.mount("/media", StaticFiles(directory=media_root_dir), name="media")
 
 # Register API routes
-app.include_prefix = settings.API_V1_STR
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(api_router)  # Also expose directly at root for convenience
 

@@ -311,13 +311,41 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = activeSrc || '#';
-    link.download = `${(title || 'episode').replace(/[^a-zA-Z0-9_-]/g, '_')}.mp4`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async () => {
+    if (!activeSrc) return;
+    
+    try {
+      const downloadUrl = `/api/v1/videos/download?path=${encodeURIComponent(activeSrc)}`;
+      const response = await fetch(downloadUrl);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Video download failed: ${response.status} ${errorText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log("VIDEO DOWNLOAD");
+      console.log("status:", response.status);
+      console.log("contentType:", response.headers.get("content-type"));
+      console.log("blobType:", blob.type);
+      console.log("blobSize:", blob.size);
+
+      if (blob.size === 0) {
+        throw new Error("Downloaded video is empty");
+      }
+      
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${(title || 'episode').replace(/[^a-zA-Z0-9_-]/g, '_')}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      console.error("Failed to download video:", err);
+      alert("Failed to download video file. The file may not exist yet or an error occurred.");
+    }
   };
 
   const formatTime = (timeInSec: number) => {

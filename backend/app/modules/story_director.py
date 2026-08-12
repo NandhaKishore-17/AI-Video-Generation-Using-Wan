@@ -4,6 +4,7 @@ import json
 from typing import List, Dict, Any
 from app.models.domain import Universe, StoryArc, Episode, StoryMemory
 from app.engines.memory_engine import memory_engine
+from app.services.knowledge_service import knowledge_service
 
 logger = logging.getLogger("story_director")
 
@@ -18,7 +19,9 @@ class StoryDirectorModule:
         self,
         db: Session,
         universe_id: str,
-        custom_prompt: str = ""
+        custom_prompt: str = "",
+        reference_document_id: str = None,
+        reference_influence: str = "Medium"
     ) -> Dict[str, Any]:
         from sqlalchemy import func
         universe = db.query(Universe).filter(Universe.id == universe_id).first()
@@ -106,6 +109,22 @@ class StoryDirectorModule:
                     "voice_actor_preset": c.get("voice_actor_preset", "")
                 })
 
+        # Process Reference RAG if requested
+        reference_themes = []
+        if reference_document_id:
+            logger.info(f"Retrieving reference themes from document {reference_document_id}")
+            # The top_k can vary based on influence level
+            top_k = 3 if reference_influence == "Low" else (5 if reference_influence == "Medium" else 8)
+            search_query = custom_prompt or arc_title
+            
+            theme_results = knowledge_service.retrieve_relevant_themes(
+                query=search_query,
+                document_ids=[reference_document_id],
+                top_k=top_k
+            )
+            for res in theme_results:
+                reference_themes.append(f"Theme Context ({res['metadata'].get('category', 'THEME')}): {res['text']}")
+
         brief = {
             "universe_id": universe.id,
             "universe_title": universe.title,
@@ -117,7 +136,9 @@ class StoryDirectorModule:
             "past_memories": memories_text,
             "previous_episode_summaries": previous_summaries,
             "universe_lore": lore_bible_summary,
-            "custom_prompt": custom_prompt
+            "custom_prompt": custom_prompt,
+            "reference_themes": reference_themes,
+            "reference_influence": reference_influence
         }
 
         logger.info(f"Story Director brief created for Episode {next_ep_num} of {universe.title}")

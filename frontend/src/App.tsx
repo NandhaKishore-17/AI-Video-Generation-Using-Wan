@@ -13,6 +13,7 @@ import { RenderQueue } from './pages/RenderQueue';
 import { SchedulerPage } from './pages/SchedulerPage';
 import { Analytics } from './pages/Analytics';
 import { SettingsPage } from './pages/SettingsPage';
+import { KnowledgeLibrary } from './pages/KnowledgeLibrary';
 import { EpisodeModal } from './components/EpisodeModal';
 import { api } from './services/api';
 import { Universe, Episode } from './types';
@@ -50,6 +51,9 @@ export const App: React.FC = () => {
       const chosenId = exists ? savedId! : data[0].id;
       setActiveUniverseId(chosenId);
       localStorage.setItem('activeUniverseId', chosenId);
+    } else {
+      setActiveUniverseId('');
+      localStorage.removeItem('activeUniverseId');
     }
   };
 
@@ -60,11 +64,25 @@ export const App: React.FC = () => {
   };
 
   const handleGenerateEpisode = async (customSec?: number, customPrompt?: string) => {
+    if (!activeUniverseId) {
+      showToast('No active universe. Please create a story universe first.', 'error');
+      return;
+    }
     setIsGenerating(true);
     showToast('Autonomous Engine: Writing Screenplay & Rendering Video Clips...', 'info');
+    
+    // Read RAG settings if they were set in Dashboard
+    const refId = localStorage.getItem('rag_reference_id') || undefined;
+    const refInfluence = localStorage.getItem('rag_reference_influence') || undefined;
+    
     try {
-      const uId = activeUniverseId || (universes.length > 0 ? universes[0].id : 'u-cyber-99');
-      const newEp = await api.generateEpisode(uId, customPrompt || 'Uncover hidden core protocol secret', customSec || sceneDuration);
+      const newEp = await api.generateEpisode(
+        activeUniverseId, 
+        customPrompt || 'Uncover hidden core protocol secret', 
+        customSec || sceneDuration,
+        refId,
+        refInfluence
+      );
       
       await loadUniverses();
       setRefreshTrigger(prev => prev + 1);
@@ -76,6 +94,9 @@ export const App: React.FC = () => {
       showToast(`Generation Error: ${err?.message || 'Failed to generate episode'}`, 'error');
     } finally {
       setIsGenerating(false);
+      // Clean up local storage
+      localStorage.removeItem('rag_reference_id');
+      localStorage.removeItem('rag_reference_influence');
     }
   };
 
@@ -113,6 +134,8 @@ export const App: React.FC = () => {
         return <EpisodeLibrary activeUniverseId={activeUniverseId} refreshTrigger={refreshTrigger} />;
       case 'memory':
         return <MemoryExplorer activeUniverseId={activeUniverseId} />;
+      case 'knowledge':
+        return <KnowledgeLibrary />;
       case 'assets':
         return <AssetLibrary />;
       case 'videos':
