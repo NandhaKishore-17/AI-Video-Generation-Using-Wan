@@ -1,0 +1,16 @@
+{
+  "uuid": "caca2a35-2d3a-4c12-b300-8c4b2b54a686",
+  "name": "Liam Reed",
+  "age": 18,
+  "gender": "Male",
+  "hair": "Blonde",
+  "face": "Square-Jawed",
+  "skin": "Tanned",
+  "clothes": {
+    "type": "Uniform",
+    "color": "Red"
+  },
+  "personality": "Confident, Charismatic",
+  "voice": "Deep-Voiced",
+  "speaking_style": " authoritative"
+}

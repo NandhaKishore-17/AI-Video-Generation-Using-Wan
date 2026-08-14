@@ -1,0 +1,16 @@
+{
+  "uuid": "290262f0-a5c8-4895-8355-f0f1f27f3c8c",
+  "name": "Lirien Flynn",
+  "age": 15,
+  "gender": "Female",
+  "hair": "Blonde",
+  "face": "Heart-shaped",
+  "skin": "Tanned",
+  "clothes": {
+    "top": "Colorful student robe",
+    "bottom": "Brown skirt"
+  },
+  "personality": "Friendly and outgoing",
+  "voice": "Soft and melodious",
+  "speaking_style": "Warm and enthusiastic"
+}

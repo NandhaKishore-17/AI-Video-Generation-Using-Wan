@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+backend/.venv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Generated media
+media_output/
+*.mp4
+*.webm
+*.mov
+*.avi
+
+# Model files
+*.safetensors
+*.ckpt
+*.pth
+*.bin
+*.gguf
+*.pt
+
+# Hugging Face cache
+.cache/
+huggingface/
+models/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
