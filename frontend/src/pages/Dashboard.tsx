@@ -22,10 +22,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
   const [selectedEpForModal, setSelectedEpForModal] = useState<Episode | null>(null);
   
   // Reference RAG State
-  const [useReference, setUseReference] = useState(false);
+  const [useReference, setUseReference] = useState(() => {
+    return localStorage.getItem('rag_reference_enabled') === 'true';
+  });
   const [knowledgeList, setKnowledgeList] = useState<KnowledgeDocument[]>([]);
-  const [selectedReference, setSelectedReference] = useState<string>('');
-  const [referenceInfluence, setReferenceInfluence] = useState<string>('Medium');
+  const [selectedReference, setSelectedReference] = useState<string>(() => {
+    return localStorage.getItem('rag_reference_id') || '';
+  });
+  const [referenceInfluence, setReferenceInfluence] = useState<string>(() => {
+    return localStorage.getItem('rag_reference_influence') || 'Medium';
+  });
 
   useEffect(() => {
     loadData();
@@ -132,13 +138,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
                 </div>
                 <div className="flex bg-slate-800 rounded-lg p-1 text-xs font-bold">
                   <button 
-                    onClick={() => setUseReference(true)}
+                    onClick={() => {
+                        setUseReference(true);
+                        localStorage.setItem('rag_reference_enabled', 'true');
+                    }}
                     className={`px-3 py-1 rounded-md transition-colors ${useReference ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
                   >
                     ON
                   </button>
                   <button 
-                    onClick={() => setUseReference(false)}
+                    onClick={() => {
+                        setUseReference(false);
+                        localStorage.setItem('rag_reference_enabled', 'false');
+                    }}
                     className={`px-3 py-1 rounded-md transition-colors ${!useReference ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
                   >
                     OFF
@@ -152,7 +164,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
                     <label className="text-slate-400 text-xs font-bold">Reference Document:</label>
                     <select 
                       value={selectedReference}
-                      onChange={(e) => setSelectedReference(e.target.value)}
+                      onChange={(e) => {
+                          setSelectedReference(e.target.value);
+                          localStorage.setItem('rag_reference_id', e.target.value);
+                      }}
                       className="bg-slate-950 text-emerald-300 font-semibold px-3 py-2 rounded-xl border border-slate-700 focus:border-emerald-500 focus:outline-none"
                     >
                       {knowledgeList.length === 0 ? (
@@ -171,7 +186,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
                       {['Low', 'Medium', 'High'].map(level => (
                         <button
                           key={level}
-                          onClick={() => setReferenceInfluence(level)}
+                          onClick={() => {
+                              setReferenceInfluence(level);
+                              localStorage.setItem('rag_reference_influence', level);
+                          }}
                           className={`flex-1 py-1.5 rounded-lg border transition-colors ${
                             referenceInfluence === level 
                             ? 'bg-emerald-900/60 border-emerald-500 text-emerald-400' 
@@ -192,15 +210,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
               id="dash-gen-btn"
               className="hidden"
               onClick={() => {
-                // To avoid passing more props to Dashboard, we can dispatch a custom event or store in localStorage
-                // But the cleanest way is just passing a callback. Let's use localStorage for now to pass the RAG params
-                if (useReference && selectedReference) {
-                  localStorage.setItem('rag_reference_id', selectedReference);
-                  localStorage.setItem('rag_reference_influence', referenceInfluence);
-                } else {
-                  localStorage.removeItem('rag_reference_id');
-                  localStorage.removeItem('rag_reference_influence');
-                }
                 onGenerateClick();
               }}
             />

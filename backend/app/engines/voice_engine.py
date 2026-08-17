@@ -81,7 +81,7 @@ class VoiceGenerationEngine:
         total_duration = res["total_duration"]
 
         # Validate audio existence and structure
-        if not os.path.exists(composite_wav):
+        if not composite_wav or not os.path.exists(composite_wav):
             raise RuntimeError(f"TTS generation failed: output file {composite_wav} does not exist.")
             
         dur, sr, has_stream = await self.validate_audio_file(composite_wav)

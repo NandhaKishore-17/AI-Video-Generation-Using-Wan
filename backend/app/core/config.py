@@ -72,13 +72,16 @@ class Settings(BaseSettings):
     MEDIA_OUTPUT_DIR: str = str(OUTPUT_DIR)
     TEMP_DIR: str = str(TEMP_DIR)
     
-    # HuggingFace Open Source Free Inference API & Cloud GPU Endpoints
-    HF_TOKEN: Optional[str] = "0ef8eb48b25946bd76c6c842e2fb3ee2b95586fde7d780b6970a1648e5cfe263"
-    VIDEO_API_KEY: Optional[str] = "0ef8eb48b25946bd76c6c842e2fb3ee2b95586fde7d780b6970a1648e5cfe263"
-    HF_API_BASE: str = "https://api-inference.huggingface.co/models"
-    HF_MODEL_QWEN: str = "Qwen/Qwen2.5-72B-Instruct"
-    HF_MODEL_FLUX: str = "black-forest-labs/FLUX.1-schnell"
-    HF_MODEL_WAN: str = "Wan-AI/Wan2.2-TI2V-5B:preferred"
+    # Remote Wan2.2 Video Generation API (Runpod Serverless)
+    RUNPOD_API_KEY: Optional[str] = None
+    RUNPOD_WAN_ENDPOINT_URL: Optional[str] = None
+    WAN_MODEL: str = "Wan2.2-TI2V-5B"
+    WAN_TIMEOUT: int = 900
+    WAN_POLL_INTERVAL: int = 5
+    WAN_DEFAULT_FPS: int = 24
+    WAN_DEFAULT_DURATION: int = 5
+    WAN_DEFAULT_WIDTH: int = 1280
+    WAN_DEFAULT_HEIGHT: int = 704
 
     model_config = SettingsConfigDict(
         env_file=[
@@ -91,6 +94,7 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+print("RUNPOD API CONFIGURED:", bool(settings.RUNPOD_WAN_ENDPOINT_URL and settings.RUNPOD_API_KEY))
 
 os.makedirs(settings.MEDIA_OUTPUT_DIR, exist_ok=True)
 os.makedirs(settings.TEMP_DIR, exist_ok=True)

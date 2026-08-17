@@ -431,6 +431,37 @@ def get_episode_detail(episode_id: str, db: Session = Depends(get_db)):
     return resp
 
 
+@router.get("/episodes/{episode_id}/status")
+async def get_episode_status(episode_id: str, db: Session = Depends(get_db)):
+    episode = db.query(Episode).filter(Episode.id == episode_id).first()
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found")
+        
+    render_task = db.query(RenderTask).filter(RenderTask.episode_id == episode_id).first()
+    scenes = db.query(Scene).filter(Scene.episode_id == episode_id).order_by(Scene.scene_number).all()
+    
+    scene_statuses = []
+    for s in scenes:
+        scene_statuses.append({
+            "scene_id": s.id,
+            "scene_number": s.scene_number,
+            "has_image": bool(s.image_url),
+            "has_audio": bool(s.audio_url),
+            "has_video": bool(s.video_url)
+        })
+        
+    return {
+        "episode_id": episode.id,
+        "status": episode.status,
+        "render_stage": render_task.stage if render_task else None,
+        "progress_percentage": render_task.progress_percentage if render_task else 0,
+        "current_step": render_task.current_step_details if render_task else None,
+        "error_log": render_task.error_log if render_task else None,
+        "has_final_video": bool(episode.final_video_url),
+        "scenes": scene_statuses
+    }
+
+
 # --- Videos & Rendering API ---
 
 @router.post("/videos/render", response_model=RenderTaskResponse)

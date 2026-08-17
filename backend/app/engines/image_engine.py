@@ -18,6 +18,7 @@ class ImageGenerationEngine:
         self.provider = settings.IMAGE_PROVIDER
         self.api_base = settings.IMAGE_API_BASE
         self.media_dir = settings.MEDIA_OUTPUT_DIR
+        os.makedirs(self.media_dir, exist_ok=True)
 
     async def generate_scene_image(
         self,
@@ -58,7 +59,11 @@ class ImageGenerationEngine:
 
         # Built-in Synthetic Visual Rendering Canvas
         self._generate_synthetic_scene_card(filepath, prompt, scene_id, width, height)
-        return f"/media/{filename}"
+        
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+            return f"/media/{filename}"
+        else:
+            raise RuntimeError(f"Image generation failed: {filepath} was not created.")
 
     def _generate_synthetic_scene_card(self, filepath: str, prompt: str, scene_id: str, width: int, height: int):
         """

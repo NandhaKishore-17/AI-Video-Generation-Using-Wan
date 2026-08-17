@@ -293,10 +293,20 @@ class EpisodeGeneratorModule:
                 char_anchors = ", ".join([c.get("appearance_prompt", "") for c in brief["characters"] if c.get("appearance_prompt")])
                 
                 logger.info(f"[IMAGE] Generating image for Scene {idx}...")
-                img_url = await image_engine.generate_scene_image(scene_id=scene_id, prompt=scene_img_prompt, character_anchors=char_anchors)
+                try:
+                    img_url = await image_engine.generate_scene_image(scene_id=scene_id, prompt=scene_img_prompt, character_anchors=char_anchors)
+                except Exception as e:
+                    logger.error(f"[IMAGE] Image generation failed for Scene {idx}: {e}")
+                    self._set_episode_failed(episode_id, f"Image generation failed for scene {idx}: {e}")
+                    return
                 
                 logger.info(f"[VIDEO] Generating video for Scene {idx}...")
-                vid_url = await video_engine.generate_scene_video(scene_id=scene_id, image_relative_url=img_url, motion_prompt=scene_vid_prompt, duration_seconds=target_duration)
+                try:
+                    vid_url = await video_engine.generate_scene_video(scene_id=scene_id, image_relative_url=img_url, motion_prompt=scene_vid_prompt, duration_seconds=target_duration)
+                except Exception as e:
+                    logger.error(f"[VIDEO] Video generation failed for Scene {idx}: {e}")
+                    self._set_episode_failed(episode_id, f"Episode generated successfully, but video generation failed: {e}")
+                    return
                 
                 logger.info(f"[TTS] Generating audio for Scene {idx}...")
                 try:

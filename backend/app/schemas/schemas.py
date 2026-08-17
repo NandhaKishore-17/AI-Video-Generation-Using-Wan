@@ -187,15 +187,18 @@ class RenderTaskResponse(BaseModel):
 # --- Wan2.2 Video Generation Schemas ---
 class VideoGenerateRequest(BaseModel):
     prompt: str = Field(..., example="A futuristic cyberpunk city at night")
-    duration: float = Field(..., example=5.0, gt=0, le=30)
-    width: int = Field(..., example=1280, gt=0, le=1920)
-    height: int = Field(..., example=720, gt=0, le=1080)
-    fps: int = Field(..., example=24, gt=1, le=60)
+    image_url: Optional[str] = Field(None, example="https://example.com/image.jpg")
+    aspect_ratio: Optional[str] = Field("16:9", example="16:9")
+    duration: float = Field(5.0, example=5.0, gt=0, le=30)
+    width: int = Field(1280, example=1280, gt=0, le=1920)
+    height: int = Field(720, example=720, gt=0, le=1080)
+    fps: int = Field(24, example=24, gt=1, le=60)
 
 
 class VideoGenerateResponse(BaseModel):
     status: str
-    video_path: str
+    task_id: Optional[str] = None
+    video_path: Optional[str] = None
     message: Optional[str] = None
 
 

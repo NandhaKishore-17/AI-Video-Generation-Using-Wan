@@ -72,8 +72,9 @@ export const App: React.FC = () => {
     showToast('Autonomous Engine: Writing Screenplay & Rendering Video Clips...', 'info');
     
     // Read RAG settings if they were set in Dashboard
-    const refId = localStorage.getItem('rag_reference_id') || undefined;
-    const refInfluence = localStorage.getItem('rag_reference_influence') || undefined;
+    const ragEnabled = localStorage.getItem('rag_reference_enabled') === 'true';
+    const refId = ragEnabled ? (localStorage.getItem('rag_reference_id') || undefined) : undefined;
+    const refInfluence = ragEnabled ? (localStorage.getItem('rag_reference_influence') || undefined) : undefined;
     
     try {
       const newEp = await api.generateEpisode(
@@ -94,9 +95,7 @@ export const App: React.FC = () => {
       showToast(`Generation Error: ${err?.message || 'Failed to generate episode'}`, 'error');
     } finally {
       setIsGenerating(false);
-      // Clean up local storage
-      localStorage.removeItem('rag_reference_id');
-      localStorage.removeItem('rag_reference_influence');
+      // Removed the cleanup of local storage so RAG settings persist
     }
   };
 

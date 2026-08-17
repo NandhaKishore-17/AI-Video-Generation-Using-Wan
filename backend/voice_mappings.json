@@ -262,5 +262,16 @@
     "rate": "+0%",
     "name": "Brian (Multilingual)",
     "description": "Hyper-realistic conversational human male voice"
+  },
+  "ADMIRAL RYKER": {
+    "character": "ADMIRAL RYKER",
+    "language": "en",
+    "gender": "male",
+    "archetype": "british_male",
+    "voice_id": "en-GB-RyanNeural",
+    "pitch": "-1Hz",
+    "rate": "-2%",
+    "name": "Ryan (British)",
+    "description": "Polished British cinematic male voice"
   }
 }

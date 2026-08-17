@@ -325,7 +325,27 @@ class TTSService:
         # 1. Get consistent voice assignment for character
         voice_info = self.voice_mgr.get_or_assign_voice(character_name, language=language)
         
-        final_voice_id = force_voice_id if force_voice_id and force_voice_id.strip() else voice_info.get("voice_id")
+        # Determine fallback mapping for known internal voice presets if used
+        FALLBACK_VOICE_MAP = {
+            "Piper-Male-Cinematic-1": "en-US-ChristopherNeural",
+            "Idris-Old-Man-Royal": "en-GB-RyanNeural"
+        }
+        
+        raw_voice_id = force_voice_id.strip() if force_voice_id and force_voice_id.strip() else None
+        
+        if raw_voice_id:
+            if raw_voice_id in FALLBACK_VOICE_MAP:
+                final_voice_id = FALLBACK_VOICE_MAP[raw_voice_id]
+                logger.info(f"[TTS] Mapped custom preset '{raw_voice_id}' to '{final_voice_id}'")
+            elif "Neural" not in raw_voice_id and "en-" not in raw_voice_id:
+                # If it's a completely unrecognized non-Edge voice, fallback to voice_mgr
+                final_voice_id = voice_info.get("voice_id")
+                logger.warning(f"[TTS] Unrecognized EdgeTTS voice '{raw_voice_id}'. Falling back to '{final_voice_id}'")
+            else:
+                final_voice_id = raw_voice_id
+        else:
+            final_voice_id = voice_info.get("voice_id")
+
         if not final_voice_id or not str(final_voice_id).strip():
             raise ValueError(
                 f"VOICE RESOLUTION FAILED: "
