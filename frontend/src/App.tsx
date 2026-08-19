@@ -13,6 +13,7 @@ import { RenderQueue } from './pages/RenderQueue';
 import { SchedulerPage } from './pages/SchedulerPage';
 import { Analytics } from './pages/Analytics';
 import { SettingsPage } from './pages/SettingsPage';
+import { KnowledgeLibrary } from './pages/KnowledgeLibrary';
 import { EpisodeModal } from './components/EpisodeModal';
 import { api } from './services/api';
 import { Universe, Episode } from './types';
@@ -23,7 +24,7 @@ export const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [universes, setUniverses] = useState<Universe[]>([]);
   const [activeUniverseId, setActiveUniverseId] = useState<string>(() => localStorage.getItem('activeUniverseId') || '');
-  const [sceneDuration, setSceneDuration] = useState<number>(8);
+  const [episodeDuration, setEpisodeDuration] = useState<number>(30);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [selectedEpForModal, setSelectedEpForModal] = useState<Episode | null>(null);
 
@@ -50,6 +51,9 @@ export const App: React.FC = () => {
       const chosenId = exists ? savedId! : data[0].id;
       setActiveUniverseId(chosenId);
       localStorage.setItem('activeUniverseId', chosenId);
+    } else {
+      setActiveUniverseId('');
+      localStorage.removeItem('activeUniverseId');
     }
   };
 
@@ -60,15 +64,26 @@ export const App: React.FC = () => {
   };
 
   const handleGenerateEpisode = async (customSec?: number, customPrompt?: string) => {
+    if (!activeUniverseId) {
+      showToast('No active universe. Please create a story universe first.', 'error');
+      return;
+    }
     setIsGenerating(true);
     showToast('Autonomous Engine: Writing Screenplay & Rendering Video Clips...', 'info');
+    
+    // Read RAG settings if they were set in Dashboard
+    const ragEnabled = localStorage.getItem('rag_reference_enabled') === 'true';
+    const refId = ragEnabled ? (localStorage.getItem('rag_reference_id') || undefined) : undefined;
+    const refInfluence = ragEnabled ? (localStorage.getItem('rag_reference_influence') || undefined) : undefined;
+    
     try {
-      const uId = activeUniverseId || (universes.length > 0 ? universes[0].id : '');
-      if (!uId) {
-        showToast('Please create a universe first before generating episodes.', 'error');
-        return;
-      }
-      const newEp = await api.generateEpisode(uId, customPrompt || undefined, customSec || sceneDuration);
+      const newEp = await api.generateEpisode(
+        activeUniverseId, 
+        customPrompt || 'Uncover hidden core protocol secret', 
+        customSec || episodeDuration,
+        refId,
+        refInfluence
+      );
       
       await loadUniverses();
       setRefreshTrigger(prev => prev + 1);
@@ -80,6 +95,7 @@ export const App: React.FC = () => {
       showToast(`Generation Error: ${err?.message || 'Failed to generate episode'}`, 'error');
     } finally {
       setIsGenerating(false);
+      // Removed the cleanup of local storage so RAG settings persist
     }
   };
 
@@ -117,6 +133,8 @@ export const App: React.FC = () => {
         return <EpisodeLibrary activeUniverseId={activeUniverseId} refreshTrigger={refreshTrigger} />;
       case 'memory':
         return <MemoryExplorer activeUniverseId={activeUniverseId} />;
+      case 'knowledge':
+        return <KnowledgeLibrary />;
       case 'assets':
         return <AssetLibrary />;
       case 'videos':
@@ -143,15 +161,15 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-background text-text-primary flex flex-col selection:bg-accent-light selection:text-accent-dark">
       {/* Toast Feedback Notification Banner */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-5 py-3.5 rounded-2xl bg-slate-900/95 border border-cyan-500/80 shadow-2xl backdrop-blur-xl animate-fadeIn">
-          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
-          {toast.type === 'info' && <Sparkles className="w-5 h-5 text-cyan-400 animate-spin shrink-0" />}
-          {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
-          <span className="text-xs font-mono font-bold text-white tracking-wide">{toast.message}</span>
-          <button onClick={() => setToast(null)} className="p-1 rounded-lg text-slate-400 hover:text-white">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-5 py-3.5 rounded-xl bg-card border border-neutral-border shadow-card animate-fadeIn">
+          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-accent-primary shrink-0" />}
+          {toast.type === 'info' && <Sparkles className="w-5 h-5 text-accent-primary animate-spin shrink-0" />}
+          {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />}
+          <span className="text-sm font-medium text-text-primary tracking-wide">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="p-1 rounded-lg text-text-secondary hover:text-text-primary">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -169,8 +187,8 @@ export const App: React.FC = () => {
         universes={universes}
         activeUniverseId={activeUniverseId}
         onSelectUniverse={handleSelectUniverse}
-        sceneDuration={sceneDuration}
-        onSceneDurationChange={setSceneDuration}
+        episodeDuration={episodeDuration}
+        onEpisodeDurationChange={setEpisodeDuration}
         onLogoClick={() => setActivePage('dashboard')}
       />
 
@@ -180,7 +198,7 @@ export const App: React.FC = () => {
         <Sidebar activePage={activePage} onSelectPage={setActivePage} />
 
         {/* Page Content Viewport */}
-        <main className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto">
+        <main className="flex-1 p-8 overflow-y-auto max-w-[1400px] mx-auto w-full">
           {renderCurrentPage()}
         </main>
       </div>

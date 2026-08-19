@@ -64,5 +64,49 @@
     "rate": "-2%",
     "name": "Eric",
     "description": "Calm and articulate professional male voice"
+  },
+  "VESPER APEX": {
+    "character": "VESPER APEX",
+    "language": "en",
+    "gender": "male",
+    "archetype": "energetic_male",
+    "voice_id": "en-US-GuyNeural",
+    "pitch": "+2Hz",
+    "rate": "+5%",
+    "name": "Guy",
+    "description": "Dynamic energetic male voice"
+  },
+  "ETHAN STERLING": {
+    "character": "ETHAN STERLING",
+    "language": "en",
+    "gender": "male",
+    "archetype": "young_male",
+    "voice_id": "en-US-AndrewNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Andrew",
+    "description": "Young energetic natural male voice"
+  },
+  "AETHON DARKHAVEN": {
+    "character": "AETHON DARKHAVEN",
+    "language": "en",
+    "gender": "male",
+    "archetype": "multilingual_male",
+    "voice_id": "en-US-BrianMultilingualNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Brian (Multilingual)",
+    "description": "Hyper-realistic conversational human male voice"
+  },
+  "LYSANDER MOONWHISPER": {
+    "character": "LYSANDER MOONWHISPER",
+    "language": "en",
+    "gender": "male",
+    "archetype": "warm_male",
+    "voice_id": "en-US-SteffanNeural",
+    "pitch": "+0Hz",
+    "rate": "-1%",
+    "name": "Steffan",
+    "description": "Warm natural conversational male voice"
   }
 }

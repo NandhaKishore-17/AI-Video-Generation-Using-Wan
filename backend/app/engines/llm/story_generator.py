@@ -122,28 +122,23 @@ class StoryGenerator:
         """
         user_message = _USER_TEMPLATE.format(prompt=prompt.strip())
 
-        last_error = None
-        for attempt in range(3):
-            # ── Call Ollama ──────────────────────────────────────────────────
-            logger.info("Generating story via Ollama for job %s (attempt %d/3) …", job_id, attempt + 1)
-            try:
-                raw = self._client.generate(prompt=user_message, system=_SYSTEM_PROMPT, format="json")
-            except OllamaError as exc:
-                raise StoryGenerationError(f"Ollama call failed: {exc}") from exc
+        # ── Call Ollama ──────────────────────────────────────────────────
+        logger.info("Generating story via Ollama for job %s …", job_id)
+        try:
+            raw = self._client.generate(prompt=user_message, system=_SYSTEM_PROMPT)
+        except OllamaError as exc:
+            raise StoryGenerationError(f"Ollama call failed: {exc}") from exc
 
-            # ── Parse & validate ─────────────────────────────────────────────
-            logger.debug("Raw Ollama response: %s", raw[:500])
-            try:
-                json_str = _extract_json(raw)
-                story_data = json.loads(json_str)
-                _validate_story(story_data)
-                break
-            except (ValueError, json.JSONDecodeError) as exc:
-                last_error = exc
-                logger.warning("Invalid JSON from Ollama on attempt %d: %s\nRaw: %s", attempt + 1, exc, raw[:300])
-                continue
-        else:
-            raise StoryGenerationError(f"Failed to generate valid JSON from Ollama after 3 attempts: {last_error}")
+        # ── Parse & validate ─────────────────────────────────────────────
+        logger.debug("Raw Ollama response: %s", raw[:500])
+        try:
+            json_str = _extract_json(raw)
+            story_data = json.loads(json_str)
+            _validate_story(story_data)
+        except (ValueError, json.JSONDecodeError) as exc:
+            raise StoryGenerationError(
+                f"Invalid JSON from Ollama: {exc}\n\nRaw: {raw[:300]}"
+            ) from exc
 
         # ── Persist ──────────────────────────────────────────────────────
         story_id = str(uuid.uuid4())

@@ -33,7 +33,12 @@ class EdgeTTSBackend(BaseTTSBackend):
     ) -> bool:
         try:
             import edge_tts
-            clean_voice = voice_id if (voice_id and "Neural" in voice_id) else "en-US-ChristopherNeural"
+            if not voice_id or not str(voice_id).strip():
+                raise ValueError(f"VOICE LOST BEFORE EDGE TTS")
+            
+            clean_voice = voice_id.strip()
+
+            
             logger.info(f"Generating EdgeTTS speech with model/voice: '{clean_voice}'")
             communicate = edge_tts.Communicate(
                 text=text,
@@ -43,7 +48,7 @@ class EdgeTTSBackend(BaseTTSBackend):
                 volume=volume
             )
             temp_mp3 = output_filepath.replace(".wav", ".mp3")
-            await communicate.save(temp_mp3)
+            await asyncio.wait_for(communicate.save(temp_mp3), timeout=15.0)
 
             # Convert generated MP3 to 24kHz WAV PCM
             success = self._convert_mp3_to_wav(temp_mp3, output_filepath)
@@ -143,8 +148,8 @@ class HumanFallbackTTSBackend(BaseTTSBackend):
         volume: str = "+0%",
         ssml_style: str = "chat"
     ) -> bool:
-        # Guarantee natural human voice output without robotic sine-wave sounds
-        clean_voice = voice_id if voice_id and "Neural" in voice_id else "en-US-ChristopherNeural"
+        clean_voice = voice_id
+
         return await self.edge_backend.generate_speech(
             text=text,
             voice_id=clean_voice,
@@ -293,7 +298,7 @@ class TTSService:
             "pyttsx3": PyTTSx3Backend(),
             "mock": HumanFallbackTTSBackend()
         }
-        self.fallback_backend = edge_backend
+        self.fallback_backend = PyTTSx3Backend()
         self.mock_backend = HumanFallbackTTSBackend()
 
     def get_backend(self) -> BaseTTSBackend:
@@ -306,7 +311,9 @@ class TTSService:
         dialogue_text: str,
         output_filepath: str,
         scene_context: str = "",
-        language: str = "en"
+        language: str = "en",
+        force_voice_id: str = None,
+        character_id: str = None
     ) -> Dict[str, Any]:
         """
         Generates expressive spoken audio file for a single character dialogue line.
@@ -317,6 +324,46 @@ class TTSService:
 
         # 1. Get consistent voice assignment for character
         voice_info = self.voice_mgr.get_or_assign_voice(character_name, language=language)
+        
+        # Determine fallback mapping for known internal voice presets if used
+        FALLBACK_VOICE_MAP = {
+            "Piper-Male-Cinematic-1": "en-US-ChristopherNeural",
+            "Idris-Old-Man-Royal": "en-GB-RyanNeural"
+        }
+        
+        raw_voice_id = force_voice_id.strip() if force_voice_id and force_voice_id.strip() else None
+        
+        if raw_voice_id:
+            if raw_voice_id in FALLBACK_VOICE_MAP:
+                final_voice_id = FALLBACK_VOICE_MAP[raw_voice_id]
+                logger.info(f"[TTS] Mapped custom preset '{raw_voice_id}' to '{final_voice_id}'")
+            elif "Neural" not in raw_voice_id and "en-" not in raw_voice_id:
+                # If it's a completely unrecognized non-Edge voice, fallback to voice_mgr
+                final_voice_id = voice_info.get("voice_id")
+                logger.warning(f"[TTS] Unrecognized EdgeTTS voice '{raw_voice_id}'. Falling back to '{final_voice_id}'")
+            else:
+                final_voice_id = raw_voice_id
+        else:
+            final_voice_id = voice_info.get("voice_id")
+
+        if not final_voice_id or not str(final_voice_id).strip():
+            raise ValueError(
+                f"VOICE RESOLUTION FAILED: "
+                f"speaker={repr(character_name)}, "
+                f"character_id={repr(character_id)}, "
+                f"character_name={repr(character_name)}"
+            )
+            
+        print("\n" + "=" * 100)
+        print("FINAL TTS REQUEST")
+        print("speaker:", repr(character_name))
+        print("character_id:", repr(character_id))
+        print("character_name:", repr(character_name))
+        print("resolved_voice:", repr(final_voice_id))
+        print("text:", repr(dialogue_text[:150]))
+        print("=" * 100)
+        
+        logger.info(f"[TTS] Generating dialogue | speaker='{character_name}' | character_id='{character_id}' | resolved_voice='{final_voice_id}'")
 
         # 2. Infer emotion and prosody adjustments from dialogue
         emotion_name, prosody = self.emotion_map.infer_emotion(dialogue_text, scene_context=scene_context)
@@ -328,7 +375,7 @@ class TTSService:
         backend = self.get_backend()
         success = await backend.generate_speech(
             text=clean_text,
-            voice_id=voice_info["voice_id"],
+            voice_id=final_voice_id,
             output_filepath=output_filepath,
             pitch=final_pitch,
             rate=final_rate,
@@ -341,7 +388,7 @@ class TTSService:
             logger.info(f"Primary backend '{self.provider}' failed. Trying pyttsx3 fallback...")
             success = await self.fallback_backend.generate_speech(
                 text=clean_text,
-                voice_id="",
+                voice_id=final_voice_id,
                 output_filepath=output_filepath,
                 rate=final_rate
             )
@@ -350,7 +397,7 @@ class TTSService:
             logger.info("pyttsx3 fallback failed. Using synthetic mock voice generator...")
             await self.mock_backend.generate_speech(
                 text=clean_text,
-                voice_id=voice_info["voice_id"],
+                voice_id=final_voice_id,
                 output_filepath=output_filepath
             )
 
@@ -410,14 +457,74 @@ class TTSService:
                 continue
 
             speaker_slug = speaker.lower().replace(" ", "_")
-            file_name = f"{speaker_slug}_{idx:03d}.wav"
+            char_id_str = item.get("character_id", "no_id")[:8] if item.get("character_id") else "no_id"
+            file_name = f"{char_id_str}_{sc_clean}_{speaker_slug}_{idx:03d}.wav"
             line_filepath = os.path.join(scene_dir, file_name)
 
             info = await self.generate_single_dialogue(
                 character_name=speaker,
                 dialogue_text=line,
                 output_filepath=line_filepath,
-                scene_context=item.get("context", "")
+                scene_context=item.get("context", ""),
+                force_voice_id=item.get("voice_id"),
+                character_id=item.get("character_id")
+            )
+
+            # Stage 2 & 3: Audio validation for individual dialogue WAV file
+            try:
+                if not os.path.exists(line_filepath):
+                    raise FileNotFoundError(f"Voice generation failed: Audio file not found at {line_filepath}")
+                
+                file_size = os.path.getsize(line_filepath)
+                if file_size < 1024:
+                    raise ValueError(f"WAV file validation failed: {line_filepath} size is {file_size} bytes (under 1 KB)")
+
+                try:
+                    with wave.open(line_filepath, "rb") as wf:
+                        sr_val = wf.getframerate()
+                        frames = wf.getnframes()
+                        channels = wf.getnchannels()
+                        dur_val = frames / float(sr_val)
+                except Exception as e:
+                    raise ValueError(f"WAV file validation failed: Failed to read wave metadata from {line_filepath}: {e}")
+
+                if dur_val <= 0:
+                    raise ValueError(f"WAV file validation failed: {line_filepath} has duration {dur_val}s (must be > 0)")
+                
+                has_stream = False
+                try:
+                    import imageio_ffmpeg
+                    import subprocess
+                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                    ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+                    if not os.path.exists(ffprobe_exe):
+                        cmd = [ffmpeg_exe, "-i", line_filepath]
+                        res = subprocess.run(cmd, capture_output=True, text=True)
+                        has_stream = "Audio:" in res.stderr
+                    else:
+                        cmd = [ffprobe_exe, "-show_streams", "-select_streams", "a", "-loglevel", "error", line_filepath]
+                        res = subprocess.run(cmd, capture_output=True, text=True)
+                        has_stream = "[STREAM]" in res.stdout
+                except Exception as e:
+                    logger.warning(f"Audio stream ffprobe check failed: {e}")
+                    has_stream = dur_val > 0 and channels > 0
+                
+                if not has_stream:
+                    raise ValueError(f"WAV file validation failed: No valid audio stream detected by ffprobe in {line_filepath}")
+            except Exception as e:
+                logger.warning(f"Audio generation completely failed for dialogue {idx}: {e}")
+                continue # Skip this dialogue line instead of crashing
+
+            # Log stage 2 & 3 details
+            logger.info(
+                "=== VOICE GENERATION REPORT (DIALOGUE LINE) ===\n"
+                f"Dialogue: {line}\n"
+                f"Speaker: {speaker}\n"
+                f"Wav Path: {line_filepath}\n"
+                f"File Size: {file_size} bytes\n"
+                f"Duration: {dur_val:.2f}s\n"
+                f"Sample Rate: {sr_val} Hz\n"
+                "=============================================="
             )
 
             start_t = current_time
@@ -444,7 +551,12 @@ class TTSService:
         # Build full scene composite audio file
         composite_filename = f"audio_scene_{sc_clean}.wav"
         composite_path = os.path.join(scene_dir, composite_filename)
-        total_duration = self.utils.concatenate_wav_files(dialogue_file_paths, composite_path)
+        if not dialogue_file_paths:
+            logger.warning(f"No valid audio generated for scene {sc_clean}. Skipping audio compilation.")
+            composite_path = None
+            total_duration = 6.0
+        else:
+            total_duration = self.utils.concatenate_wav_files(dialogue_file_paths, composite_path)
 
         srt_content = self.utils.generate_srt_subtitles(timed_dialogues)
 

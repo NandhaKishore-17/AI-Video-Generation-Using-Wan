@@ -11,18 +11,21 @@ interface VideoPlayerProps {
   aspectRatio?: '16:9' | '9:16';
 }
 
-// Dynamic voice config — assigns slightly different pitch/rate based on speaker name hash
-// No hardcoded character names.
-function getVoiceConfig(speaker: string): { pitch: number; rate: number } {
-  // Simple hash to deterministically vary voice per character
-  let hash = 0;
-  for (let i = 0; i < speaker.length; i++) {
-    hash = ((hash << 5) - hash) + speaker.charCodeAt(i);
-    hash |= 0;
+// Voice config for character TTS matching
+const CHARACTER_VOICES: Record<string, { pitch: number; rate: number; name?: string }> = {
+  'kaelen': { pitch: 0.85, rate: 0.95 },
+  'nova': { pitch: 1.25, rate: 1.0 },
+  'director': { pitch: 0.7, rate: 0.85 },
+  'vane': { pitch: 0.7, rate: 0.85 },
+  'default': { pitch: 1.0, rate: 0.9 },
+};
+
+function getVoiceConfig(speaker: string) {
+  const lower = speaker.toLowerCase();
+  for (const key of Object.keys(CHARACTER_VOICES)) {
+    if (lower.includes(key)) return CHARACTER_VOICES[key];
   }
-  const pitchVariation = 0.8 + (Math.abs(hash % 50) / 100); // 0.8 - 1.3
-  const rateVariation = 0.85 + (Math.abs((hash >> 8) % 30) / 100); // 0.85 - 1.15
-  return { pitch: pitchVariation, rate: rateVariation };
+  return CHARACTER_VOICES['default'];
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -73,10 +76,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     stopTTS();
     if (videoUrl && videoUrl.trim().length > 0) {
       setActiveSrc(videoUrl);
+    } else if (scenes && scenes.length > 0 && scenes[0].video_url) {
+      setActiveSrc(scenes[0].video_url);
     } else {
       setActiveSrc('');
     }
-  }, [videoUrl]);
+  }, [videoUrl, scenes]);
 
   // Stop TTS
   const stopTTS = useCallback(() => {
@@ -106,14 +111,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const voices = synthRef.current.getVoices();
     const engVoices = voices.filter(v => v.lang.startsWith('en'));
     if (engVoices.length > 0) {
-      // Assign voices based on speaker name hash for variety
-      const config = getVoiceConfig(speaker);
-      const useFemaleVoice = config.pitch > 1.05;
+      // Try to assign gender-appropriate voice
+      const isFemale = speaker.toLowerCase().includes('nova') || speaker.toLowerCase().includes('thorne');
       const femaleVoices = engVoices.filter(v => /female|woman|girl/i.test(v.name));
-      const maleVoices = engVoices.filter(v => /male|man|david|james/i.test(v.name));
-      if (useFemaleVoice && femaleVoices.length > 0) {
+      const maleVoices = engVoices.filter(v => /male|man|david|james|microsoft/i.test(v.name));
+      if (isFemale && femaleVoices.length > 0) {
         utterance.voice = femaleVoices[0];
-      } else if (!useFemaleVoice && maleVoices.length > 0) {
+      } else if (!isFemale && maleVoices.length > 0) {
         utterance.voice = maleVoices[0];
       } else {
         utterance.voice = engVoices[0];
@@ -150,8 +154,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     }
 
-    // No scene data available — return null instead of hardcoded dialogue
-    return null;
+    // Default character script synced to playback time
+    const defaultScript = [
+      { t: 0, speaker: 'KAELEN VANCE', line: 'The grid frequency is fluctuating... someone breached the core.' },
+      { t: 4.5, speaker: 'NOVA THORNE', line: "Tracing origin IP... it leads directly to Director Vane's server." },
+      { t: 9.0, speaker: 'DIRECTOR VANE', line: "You're too late, detective. The Obsidian Protocol is already live." },
+      { t: 13.5, speaker: 'KAELEN VANCE', line: 'Executing counter-override. Hold the extraction line!' }
+    ];
+
+    const currentDialogue = defaultScript.reduce((prev, curr) => {
+      return currentTime >= curr.t ? curr : prev;
+    }, defaultScript[0]);
+
+    return currentDialogue;
   };
 
   const activeSubtitle = getActiveSubtitle();
@@ -296,13 +311,41 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = activeSrc || '#';
-    link.download = `${(title || 'episode').replace(/[^a-zA-Z0-9_-]/g, '_')}.mp4`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async () => {
+    if (!activeSrc) return;
+    
+    try {
+      const downloadUrl = `/api/v1/videos/download?path=${encodeURIComponent(activeSrc)}`;
+      const response = await fetch(downloadUrl);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Video download failed: ${response.status} ${errorText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log("VIDEO DOWNLOAD");
+      console.log("status:", response.status);
+      console.log("contentType:", response.headers.get("content-type"));
+      console.log("blobType:", blob.type);
+      console.log("blobSize:", blob.size);
+
+      if (blob.size === 0) {
+        throw new Error("Downloaded video is empty");
+      }
+      
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${(title || 'episode').replace(/[^a-zA-Z0-9_-]/g, '_')}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      console.error("Failed to download video:", err);
+      alert("Failed to download video file. The file may not exist yet or an error occurred.");
+    }
   };
 
   const formatTime = (timeInSec: number) => {
@@ -318,7 +361,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative rounded-2xl overflow-hidden glass-panel border border-slate-700/60 group shadow-2xl bg-black ${
+      className={`relative rounded-2xl overflow-hidden glass-panel border border-neutral-border/60 group shadow-2xl bg-black ${
         aspectRatio === '9:16' ? 'max-w-xs mx-auto aspect-[9/16]' : 'w-full aspect-video'
       }`}
     >
@@ -344,7 +387,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         /* Cinematic Motion Synthesizer Canvas View */
         <div
           onClick={togglePlay}
-          className="w-full h-full relative flex flex-col items-center justify-center bg-slate-950 overflow-hidden cursor-pointer"
+          className="w-full h-full relative flex flex-col items-center justify-center bg-card overflow-hidden cursor-pointer"
         >
           {posterUrl ? (
             <img
@@ -354,25 +397,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 brightness-90"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950 via-purple-950 to-slate-950" />
+            <div className="absolute inset-0 bg-secondary" />
           )}
 
           {/* Glowing Ambient Lighting */}
           <div
             className={`absolute inset-0 pointer-events-none transition-opacity duration-700 ${
-              isPlaying ? 'opacity-40 animate-pulse' : 'opacity-20'
+              isPlaying ? 'opacity-20 animate-pulse' : 'opacity-10'
             }`}
-            style={{ background: 'radial-gradient(circle at center, rgba(6,182,212,0.2) 0%, transparent 70%)' }}
+            style={{ background: 'radial-gradient(circle at center, rgba(23, 107, 77, 0.2) 0%, transparent 70%)' }}
           />
 
           {/* Audio/TTS waveform indicator when playing */}
           {isPlaying && (
-            <div className="absolute top-4 right-4 flex items-end space-x-1 z-20 bg-black/60 px-3 py-1.5 rounded-full border border-cyan-500/40">
-              <Mic className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <div className="w-1 h-3 bg-cyan-400 animate-bounce" />
-              <div className="w-1 h-4 bg-purple-400 animate-bounce [animation-delay:0.2s]" />
-              <div className="w-1 h-2 bg-pink-400 animate-bounce [animation-delay:0.4s]" />
-              <span className="text-[10px] font-mono text-cyan-300 ml-1 font-bold">CHARACTER VOICE ACTIVE</span>
+            <div className="absolute top-4 right-4 flex items-end space-x-1 z-20 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20">
+              <Mic className="w-3.5 h-3.5 text-white animate-pulse" />
+              <div className="w-1 h-3 bg-white animate-bounce" />
+              <div className="w-1 h-4 bg-accent-light animate-bounce [animation-delay:0.2s]" />
+              <div className="w-1 h-2 bg-white animate-bounce [animation-delay:0.4s]" />
+              <span className="text-[10px] font-mono text-white ml-1 font-bold">CHARACTER VOICE ACTIVE</span>
             </div>
           )}
         </div>
@@ -380,44 +423,35 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Overlay Big Play Button when Paused */}
       {!isPlaying && (
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center space-y-3 z-10 pointer-events-none">
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px] flex flex-col items-center justify-center space-y-4 z-10 pointer-events-none">
           <button
             onClick={togglePlay}
-            className="pointer-events-auto p-5 rounded-full bg-gradient-to-tr from-cyan-500 via-purple-600 to-pink-500 text-white shadow-glow-cyan transform hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer"
+            className="pointer-events-auto p-5 rounded-full bg-accent-primary text-white shadow-card transform hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer"
           >
             <Play className="w-8 h-8 ml-1 fill-white" />
           </button>
           <div className="text-center pointer-events-auto cursor-pointer" onClick={togglePlay}>
-            <h3 className="text-sm font-extrabold text-white tracking-wide px-4">{title || 'Cinematic Episode Render'}</h3>
-            <p className="text-[11px] font-mono text-cyan-300 mt-1">CLICK TO PLAY WITH VOICE DIALOGUE</p>
+            <h3 className="text-sm font-extrabold text-white tracking-wide px-4 drop-shadow-md">{title || 'Cinematic Episode Render'}</h3>
+            <p className="text-[11px] font-mono text-neutral-border mt-1 opacity-90 drop-shadow-sm">CLICK TO PLAY WITH VOICE DIALOGUE</p>
           </div>
         </div>
       )}
 
       {/* Subtitles Box Overlay Matched to Character Voice */}
       {showSubtitles && isPlaying && activeSubtitle && activeSubtitle.line && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl bg-black/95 text-center max-w-[85%] z-20 shadow-2xl pointer-events-none border border-slate-700/80 flex flex-col items-center space-y-1">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl bg-black/80 backdrop-blur-sm text-center max-w-[85%] z-20 shadow-2xl pointer-events-none border border-white/10 flex flex-col items-center space-y-1">
           <div className="flex items-center space-x-1.5">
-            <Mic className="w-3 h-3 text-cyan-400 animate-pulse" />
+            <Mic className="w-3 h-3 text-accent-light animate-pulse" />
             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${
-              (() => {
-                // Dynamic color based on speaker name hash
-                const hash = Array.from(activeSubtitle.speaker).reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0);
-                const colors = [
-                  'bg-cyan-950 text-cyan-300 border-cyan-800',
-                  'bg-amber-950 text-amber-300 border-amber-800',
-                  'bg-purple-950 text-purple-300 border-purple-800',
-                  'bg-emerald-950 text-emerald-300 border-emerald-800',
-                  'bg-rose-950 text-rose-300 border-rose-800',
-                  'bg-indigo-950 text-indigo-300 border-indigo-800',
-                ];
-                return colors[Math.abs(hash) % colors.length];
-              })()
+              activeSubtitle.speaker.toUpperCase().includes('KAELEN') ? 'bg-accent-primary text-white border-accent-dark' :
+              activeSubtitle.speaker.toUpperCase().includes('NOVA') ? 'bg-neutral-warm text-text-primary border-neutral-border' :
+              activeSubtitle.speaker.toUpperCase().includes('VANE') || activeSubtitle.speaker.toUpperCase().includes('DIRECTOR') ? 'bg-neutral-soft text-text-primary border-neutral-border' :
+              'bg-white text-text-secondary border-neutral-border'
             }`}>
               {activeSubtitle.speaker}
             </span>
           </div>
-          <p className="text-xs md:text-sm font-bold text-yellow-300 tracking-wide leading-relaxed">
+          <p className="text-xs md:text-sm font-bold text-white tracking-wide leading-relaxed">
             "{activeSubtitle.line}"
           </p>
         </div>
@@ -433,21 +467,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           step={0.1}
           value={currentTime}
           onChange={handleSeek}
-          className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+          className="w-full h-1.5 bg-neutral-soft rounded-lg appearance-none cursor-pointer accent-accent-primary"
         />
 
         {/* Control Buttons Row */}
         <div className="flex items-center justify-between text-white text-xs">
           <div className="flex items-center space-x-3">
-            <button onClick={togglePlay} className="hover:text-cyan-400 transition-colors">
+            <button onClick={togglePlay} className="hover:text-accent-light transition-colors">
               {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white" />}
             </button>
 
-            <button onClick={toggleMute} className="hover:text-cyan-400 transition-colors">
-              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
+            <button onClick={toggleMute} className="hover:text-accent-light transition-colors">
+              {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
 
-            <span className="font-mono text-[11px] text-cyan-300 font-bold">
+            <span className="font-mono text-[11px] text-accent-light font-bold">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>
@@ -455,7 +489,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <div className="flex items-center space-x-3">
             {/* TTS Active indicator */}
             {ttsReady && isPlaying && !isMuted && (
-              <span className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+              <span className="text-[9px] font-mono text-accent-light flex items-center gap-1">
                 <Mic className="w-3 h-3 animate-pulse" /> TTS ON
               </span>
             )}
@@ -463,18 +497,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <button
               onClick={() => setShowSubtitles(!showSubtitles)}
               className={`p-1 rounded text-[11px] font-mono flex items-center space-x-1 transition-colors ${
-                showSubtitles ? 'bg-cyan-950 text-cyan-300 border border-cyan-700' : 'text-slate-400 hover:text-white'
+                showSubtitles ? 'bg-accent-primary text-white border border-accent-dark' : 'text-neutral-border hover:text-white'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">CC</span>
             </button>
 
-            <button onClick={handleDownload} className="hover:text-cyan-400 transition-colors" title="Download MP4">
+            <button onClick={handleDownload} className="hover:text-accent-primary transition-colors" title="Download MP4">
               <Download className="w-4 h-4" />
             </button>
 
-            <button onClick={toggleFullscreen} className="hover:text-cyan-400 transition-colors" title="Toggle Fullscreen">
+            <button onClick={toggleFullscreen} className="hover:text-accent-primary transition-colors" title="Toggle Fullscreen">
               <Maximize2 className="w-4 h-4" />
             </button>
           </div>

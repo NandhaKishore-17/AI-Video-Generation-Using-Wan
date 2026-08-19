@@ -32,6 +32,8 @@ class Wan22Wrapper:
 
         logger.info("Initializing Wan22Wrapper with model_path=%s", self.model_path)
         try:
+            if not self.model_path.exists() and "Wan-AI" not in str(self.model_path).replace("\\", "/"):
+                raise RuntimeError(f"Wan2.2 model path '{self.model_path}' does not exist. Video generation cannot proceed.")
             wan_pipeline.model_path = self.model_path
             self._initialized = True
             logger.info("Wan22Wrapper initialized; model loading will be deferred to the generation step.")
@@ -53,6 +55,9 @@ class Wan22Wrapper:
     ) -> str:
         logger.info("Wan22Wrapper.generate_video called for prompt='%s', output='%s'", prompt[:60], output_path)
         self.initialize()
+        
+        if not self._initialized:
+            raise RuntimeError("Video generation is unavailable because Wan2.2 model files were not found.")
 
         output_dir = Path(output_path).parent
         output_dir.mkdir(parents=True, exist_ok=True)

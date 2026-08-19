@@ -1,0 +1,358 @@
+{
+  "memories": {
+    "Nova Thorne": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Vesper Stark": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Nova Thorne and Vesper Stark investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Caelum Vance": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Lyra Stark": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Caelum Vance and Lyra Stark investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Seraphina Cross": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Valen Apex": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Seraphina Cross and Valen Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Ethan Cross": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Nova Apex": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Ethan Cross and Nova Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Seraphina Sterling": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Valen Thorne": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Seraphina Sterling and Valen Thorne investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Seraphina Sentinel": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Ethan Apex": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Seraphina Sentinel and Ethan Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Nova Shadow": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Vesper Apex": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Nova Shadow and Vesper Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Kaelen Thorne": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ],
+    "Marcus Apex": [
+      {
+        "episode": 1,
+        "content": "Successfully finished Episode 1: Episode 1: The Cyberpunk Neo-Sektor Breach. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle breach.."
+      },
+      {
+        "episode": 2,
+        "content": "Successfully finished Episode 2: Episode 2: The Cyberpunk Neo-Sektor Transmission. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle transmission.."
+      },
+      {
+        "episode": 3,
+        "content": "Successfully finished Episode 3: Episode 3: The Cyberpunk Neo-Sektor Echoes. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle echoes.."
+      },
+      {
+        "episode": 4,
+        "content": "Successfully finished Episode 4: Episode 4: The Cyberpunk Neo-Sektor Pulse. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle pulse.."
+      },
+      {
+        "episode": 5,
+        "content": "Successfully finished Episode 5: Episode 5: The Cyberpunk Neo-Sektor Protocol. Objective: In this episode, Kaelen Thorne and Marcus Apex investigate Cyberpunk Neo-Sektor to handle protocol.."
+      }
+    ]
+  },
+  "relationships": {},
+  "knowledge": {}
+}

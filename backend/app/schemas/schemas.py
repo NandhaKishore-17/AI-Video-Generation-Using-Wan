@@ -8,6 +8,8 @@ class UniverseCreate(BaseModel):
     genre: str = Field(..., example="Sci-Fi / Cyberpunk Noir")
     logline: str = Field(..., example="In a neon-drenched metropolis controlled by rogue AIs, a renegade hacker and a disgraced detective uncover a conspiracy that threatens human consciousness.")
     world_rules: Optional[str] = Field(None, example="1. High-tech cybernetics are mandatory. 2. The Sun rarely shines through atmospheric smog. 3. Memory chips can be stolen.")
+    use_reference_knowledge: Optional[bool] = Field(False, example=False)
+    reference_document_id: Optional[str] = Field(None, example="doc-uuid")
 
 class UniverseResponse(BaseModel):
     id: str
@@ -36,6 +38,16 @@ class CharacterCreate(BaseModel):
     voice_actor_preset: Optional[str] = "Piper-Male-Cinematic-1"
     voice_pitch: Optional[float] = 1.0
     voice_speed: Optional[float] = 1.0
+    bio: Optional[str] = None
+
+class CharacterUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    personality: Optional[str] = None
+    appearance_prompt: Optional[str] = None
+    voice_actor_preset: Optional[str] = None
+    voice_pitch: Optional[float] = None
+    voice_speed: Optional[float] = None
     bio: Optional[str] = None
 
 class CharacterResponse(BaseModel):
@@ -106,7 +118,10 @@ class StoryArcResponse(BaseModel):
 class EpisodeGenerateRequest(BaseModel):
     universe_id: str
     custom_prompt: Optional[str] = None
-    scene_duration_seconds: Optional[float] = 8.0
+    scene_duration_seconds: Optional[float] = None  # Kept for backward compat; prefer episode_duration_seconds
+    episode_duration_seconds: Optional[float] = 30.0  # Total episode duration in seconds
+    reference_document_id: Optional[str] = None
+    reference_influence: Optional[str] = "Medium"  # Low, Medium, High
 
 class SceneResponse(BaseModel):
     id: str
@@ -134,6 +149,7 @@ class EpisodeResponse(BaseModel):
     episode_number: int
     title: str
     logline: str
+    summary: Optional[str] = None
     status: str
     screenplay: Optional[Dict[str, Any]]
     duration_seconds: float
@@ -172,15 +188,18 @@ class RenderTaskResponse(BaseModel):
 # --- Wan2.2 Video Generation Schemas ---
 class VideoGenerateRequest(BaseModel):
     prompt: str = Field(..., example="A futuristic cyberpunk city at night")
-    duration: float = Field(..., example=5.0, gt=0, le=30)
-    width: int = Field(..., example=1280, gt=0, le=1920)
-    height: int = Field(..., example=720, gt=0, le=1080)
-    fps: int = Field(..., example=24, gt=1, le=60)
+    image_url: Optional[str] = Field(None, example="https://example.com/image.jpg")
+    aspect_ratio: Optional[str] = Field("16:9", example="16:9")
+    duration: float = Field(5.0, example=5.0, gt=0, le=30)
+    width: int = Field(1280, example=1280, gt=0, le=1920)
+    height: int = Field(720, example=720, gt=0, le=1080)
+    fps: int = Field(24, example=24, gt=1, le=60)
 
 
 class VideoGenerateResponse(BaseModel):
     status: str
-    video_path: str
+    task_id: Optional[str] = None
+    video_path: Optional[str] = None
     message: Optional[str] = None
 
 
@@ -201,6 +220,7 @@ class MemoryQueryResult(BaseModel):
 class SchedulerStartRequest(BaseModel):
     interval_minutes: Optional[int] = 60
     auto_publish: Optional[bool] = True
+    mode: Optional[str] = "interval"  # "interval" or "continuous"
 
 class SchedulerStatusResponse(BaseModel):
     is_running: bool
@@ -208,3 +228,66 @@ class SchedulerStatusResponse(BaseModel):
     last_run: Optional[datetime]
     next_run: Optional[datetime]
     auto_publish: bool
+    mode: str = "interval"  # "interval" or "continuous"
+
+
+# --- LLM Validation Schemas ---
+class DialogueData(BaseModel):
+    speaker: str
+    line: str
+
+class SceneData(BaseModel):
+    scene_number: int
+    location: str
+    visual_description: str
+    emotion: str
+    image_prompt: str
+    video_motion_prompt: str
+    negative_prompt: str
+    dialogue: List[DialogueData]
+
+class ScreenplayData(BaseModel):
+    episode_title: str
+    logline: str
+    summary: str
+    completed_events: List[str] = []
+    unresolved_events: List[str] = []
+    character_states: Dict[str, str] = {}
+    new_locations: List[str] = []
+    new_items: List[str] = []
+    scenes: List[SceneData]
+
+class FactionSchema(BaseModel):
+    name: str
+    description: str
+
+class UniverseGeneratedData(BaseModel):
+    world_summary: str
+    factions: List[FactionSchema] = []
+    historical_milestones: List[Any] = []
+    suggested_characters: List[Dict[str, Any]] = []
+    initial_story_arcs: List[Dict[str, Any]] = []
+
+
+# --- Knowledge Reference Schemas ---
+class KnowledgeDocumentResponse(BaseModel):
+    id: str
+    name: str
+    file_type: str
+    status: str
+    chunk_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class KnowledgeSearchRequest(BaseModel):
+    query: str
+    document_ids: Optional[List[str]] = None
+    top_k: Optional[int] = 5
+
+class KnowledgeSearchResult(BaseModel):
+    text: str
+    score: float
+    metadata: Dict[str, Any]
+

@@ -34,8 +34,8 @@ async def lifespan(app: FastAPI):
         db.close()
 
     try:
-        engine = await get_video_engine()
-        logger.info("Video engine initialized: %s", type(engine).__name__)
+        video_eng = await get_video_engine()
+        logger.info("Video engine initialized: %s", type(video_eng).__name__)
     except Exception as exc:
         logger.warning("Video engine initialization skipped: %s", exc)
     
@@ -60,12 +60,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static media output directory for serving generated images, audio, video clips, and final rendered MP4s
-os.makedirs(settings.MEDIA_OUTPUT_DIR, exist_ok=True)
-app.mount("/media", StaticFiles(directory=settings.MEDIA_OUTPUT_DIR), name="media")
+# Mount root media folder to serve job-specific and episode-specific assets at /media
+media_root_dir = settings.MEDIA_OUTPUT_DIR
+os.makedirs(media_root_dir, exist_ok=True)
+app.mount("/media", StaticFiles(directory=media_root_dir), name="media")
 
 # Register API routes
-app.include_prefix = settings.API_V1_STR
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(api_router)  # Also expose directly at root for convenience
 
@@ -100,4 +100,4 @@ else:
         }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, access_log=False)

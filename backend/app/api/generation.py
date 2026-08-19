@@ -30,6 +30,18 @@ class CompleteVideoRequest(BaseModel):
     language: str = "English"
 
 
+class StoryOnlyRequest(BaseModel):
+    genre: str = "Fantasy"
+    theme: str
+    universe_title: Optional[str] = None
+    duration: int = 60
+    language: str = "English"
+    episode_number: int = 1
+    world_rules: Optional[str] = None
+    previous_summaries: Optional[list] = None
+    characters: Optional[list] = None
+
+
 class JobResponse(BaseModel):
     job_id: str
     status: str
@@ -79,6 +91,17 @@ async def generate(request: GenerateRequest):
 async def generate_complete_video(request: CompleteVideoRequest):
     """Create a story-driven video pipeline with characters, prompts, voice, subtitles, music, and final composition."""
     job_id = job_manager.enqueue_complete_video_job(request.model_dump())
+    return JobResponse(job_id=job_id, status="queued")
+
+
+@router.post("/generate-story-only", response_model=JobResponse, summary="Story-only pipeline (no video generation)")
+async def generate_story_only(request: StoryOnlyRequest):
+    """
+    Runs: Ollama story → scene dialogue → TTS voice → SRT subtitles.
+    Skips: Wan2.2, FLUX, image/video generation, FFmpeg.
+    Returns a job_id; poll /status/{job_id} and retrieve debug files from job_dir.
+    """
+    job_id = job_manager.enqueue_story_only_job(request.model_dump())
     return JobResponse(job_id=job_id, status="queued")
 
 

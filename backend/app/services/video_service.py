@@ -1,16 +1,17 @@
 import logging
-import traceback
+import os
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
 from app.core.config import settings
-from app.engines.video.wan_video_engine import get_video_engine
 
 logger = logging.getLogger("video_service")
 
 
 class VideoGenerationService:
+    """Generate video using the local Wan 2.2 pipeline."""
+
     def __init__(self):
         self.output_dir = Path(settings.MEDIA_OUTPUT_DIR)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -18,36 +19,36 @@ class VideoGenerationService:
     async def generate_video(
         self,
         prompt: str,
+        image_url: Optional[str] = None,
         duration: float = 2.0,
         width: int = 640,
         height: int = 360,
-        fps: int = 12,
+        fps: int = 24,
         output_path: Optional[str] = None,
+        aspect_ratio: str = "16:9",
     ) -> str:
-        """
-        Generate a video using the configured video engine.
+        """Generate video using the local Wan 2.2 engine.
 
-        Returns the relative media path of the generated MP4.
+        Returns the relative media URL for the generated video (e.g. /media/xxx.mp4).
         """
         if not output_path:
-            filename = f"wan2_2_{uuid4().hex}.mp4"
+            filename = f"scene_{uuid4().hex}.mp4"
             output_path = str(self.output_dir / filename)
 
-        logger.info(
-            "VideoService.generate_video starting: prompt='%s', output_path=%s, resolution=%sx%s, fps=%s, duration=%ss",
-            prompt[:80],
-            output_path,
-            width,
-            height,
-            fps,
-            duration,
-        )
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+        logger.info("=" * 50)
+        logger.info("STARTING LOCAL WAN 2.2 VIDEO GENERATION")
+        logger.info("Prompt: %s", prompt[:500])
+        logger.info("Output: %s", output_path)
+        logger.info("Resolution: %dx%d  fps=%d  duration=%.1fs", width, height, fps, duration)
+        logger.info("=" * 50)
+
+        from app.engines.video.wan_video_engine import get_video_engine
 
         try:
             engine = await get_video_engine()
-            logger.info("VideoService: Acquired video engine '%s'", type(engine).__name__)
-
-            video_path = await engine.render_video_async(
+            await engine.render_video_async(
                 scene_prompt=prompt,
                 output_path=output_path,
                 width=width,
@@ -57,13 +58,14 @@ class VideoGenerationService:
                 seed=42,
             )
 
-            relative_path = f"media_output/{Path(video_path).name}"
-            logger.info("VideoService: Video generation successfully completed. relative_path=%s", relative_path)
-            return relative_path
+            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+                raise RuntimeError(f"Video generation produced no output at {output_path}")
 
-        except Exception as exc:
-            tb = traceback.format_exc()
-            logger.error("VideoService: Video generation failed with traceback:\n%s", tb)
+            logger.info("Video saved successfully: %s", output_path)
+            return f"/media/{Path(output_path).name}"
+
+        except Exception:
+            logger.exception("Local WAN video generation failed")
             raise
 
 

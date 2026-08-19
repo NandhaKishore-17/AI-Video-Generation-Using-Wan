@@ -3,7 +3,7 @@ import subprocess
 import os
 import wave
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
 
@@ -36,6 +36,13 @@ class VideoCompositor:
         if os.path.exists(p) and os.path.getsize(p) > 0:
             return os.path.abspath(p)
         clean_p = p.lstrip("/").replace("media/", "", 1) if p.startswith("/media/") else p.lstrip("/")
+        
+        # Try finding in the media folder at BASE_DIR first
+        from app.core.config import BASE_DIR
+        candidate_media = Path(BASE_DIR) / "media" / clean_p
+        if candidate_media.exists() and candidate_media.stat().st_size > 0:
+            return str(candidate_media.resolve())
+            
         candidate = Path(settings.MEDIA_OUTPUT_DIR) / os.path.basename(clean_p)
         if candidate.exists() and candidate.stat().st_size > 0:
             return str(candidate.resolve())
@@ -79,6 +86,13 @@ class VideoCompositor:
         # Step 3 – mux audio into video
         if combined_voice_wav or combined_music_wav:
             self._mux_audio(ffmpeg, silent_video, combined_voice_wav, combined_music_wav, combined_srt, str(output_path))
+            
+            # Verify resulting file has audio stream
+            has_vid, has_aud = self.verify_composed_streams(str(output_path))
+            if not has_vid:
+                raise RuntimeError("Composed video has no video stream!")
+            if not has_aud:
+                raise RuntimeError("Composed video was expected to have audio but no audio stream was detected!")
         else:
             logger.warning("No valid audio files found; output will have no audio track.")
             import shutil
@@ -241,6 +255,46 @@ class VideoCompositor:
         parts = [f"[{i}:v]" for i in range(clip_count)]
         parts.append(f"concat=n={clip_count}:v=1:a=0[vout]")
         return "".join(parts)
+
+    def verify_composed_streams(self, filepath: str) -> Tuple[bool, bool]:
+        """
+        Verify that the composed MP4 contains one video stream and one audio stream.
+        Returns (has_video, has_audio)
+        """
+        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            return False, False
+
+        has_video = False
+        has_audio = False
+
+        try:
+            import imageio_ffmpeg
+            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+            ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+            
+            if not os.path.exists(ffprobe_exe):
+                # Fallback to ffmpeg output probing
+                cmd = [ffmpeg_exe, "-i", filepath]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                has_video = "Video:" in res.stderr
+                has_audio = "Audio:" in res.stderr
+            else:
+                # Check video stream
+                cmd_v = [ffprobe_exe, "-show_streams", "-select_streams", "v", "-loglevel", "error", filepath]
+                res_v = subprocess.run(cmd_v, capture_output=True, text=True)
+                has_video = "[STREAM]" in res_v.stdout
+                
+                # Check audio stream
+                cmd_a = [ffprobe_exe, "-show_streams", "-select_streams", "a", "-loglevel", "error", filepath]
+                res_a = subprocess.run(cmd_a, capture_output=True, text=True)
+                has_audio = "[STREAM]" in res_a.stdout
+        except Exception as e:
+            logger.warning(f"Failed to verify composed streams via ffprobe: {e}")
+            # Try basic fallback if possible, or assume True if we can't run ffmpeg/ffprobe
+            has_video = True
+            has_audio = True
+            
+        return has_video, has_audio
 
 
 compositor = VideoCompositor()

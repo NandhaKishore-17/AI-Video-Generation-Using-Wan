@@ -71,6 +71,7 @@ export interface Episode {
   episode_number: number;
   title: string;
   logline: string;
+  summary?: string;
   status: 'DRAFT' | 'GENERATING' | 'RENDERING' | 'COMPLETED' | 'FAILED';
   screenplay?: Record<string, any>;
   duration_seconds: number;
@@ -98,6 +99,7 @@ export interface SchedulerStatus {
   last_run?: string;
   next_run?: string;
   auto_publish: boolean;
+  mode?: string;
 }
 
 export interface MemoryQueryResult {
@@ -115,14 +117,25 @@ export interface AnalyticsData {
   total_characters: number;
   completed_renders: number;
   engine_benchmarks: {
-    llm_provider?: string;
-    llm_model?: string;
-    image_provider?: string;
-    video_provider?: string;
-    voice_provider?: string;
+    gemma_llm_avg_sec: number;
+    flux_image_avg_sec: number;
+    wan_video_avg_sec: number;
+    piper_voice_avg_sec: number;
+    ffmpeg_stitch_avg_sec: number;
   };
   system_status: {
-    llm_api_base?: string;
-    ollama_model?: string;
+    gpu_vram_allocated_gb: string;
+    celery_workers_active: number;
+    redis_connected: boolean;
+    qdrant_indexed_vectors: number;
   };
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  name: string;
+  file_type: string;
+  status: string;
+  chunk_count: number;
+  created_at: string;
 }

@@ -50,6 +50,28 @@ class FFmpegVideoRenderEngine:
             logger.warning(f"Error combining WAV files: {e}")
             return False
 
+    def _verify_audio_stream(self, video_path: str) -> bool:
+        """Verifies that the final MP4 contains an audio stream using ffprobe."""
+        if not os.path.exists(video_path):
+            return False
+        try:
+            ffmpeg_exe = self._get_ffmpeg_exe()
+            ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+            if os.path.exists(ffprobe_exe):
+                cmd = [ffprobe_exe, "-show_streams", "-select_streams", "a", "-loglevel", "error", video_path]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                has_stream = "[STREAM]" in res.stdout
+            else:
+                cmd = [ffmpeg_exe, "-i", video_path]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                has_stream = "Audio:" in res.stderr
+            
+            logger.info(f"[MEDIA VERIFY] video_stream=true, audio_stream={str(has_stream).lower()}")
+            return has_stream
+        except Exception as e:
+            logger.error(f"Error verifying audio stream: {e}")
+            return False
+
     async def render_episode_mp4(
         self,
         episode_id: str,
@@ -57,92 +79,127 @@ class FFmpegVideoRenderEngine:
         aspect_ratio: str = "16:9"
     ) -> str:
         """
-        Stitches all scenes together by first muxing each scene's video, audio, and subtitles,
-        then concatenating the fully formed scene clips into a final episode MP4.
+        Stitches all scenes together, overlays composite character audio + music track,
+        burns SRT subtitles, and produces final episode MP4 file with character voice audio.
         """
         output_filename = f"final_episode_{episode_id}.mp4"
         output_path = os.path.join(self.media_dir, output_filename)
-        concat_list_path = os.path.join(self.temp_dir, f"concat_{episode_id}.txt")
 
-        ffmpeg_exe = self._get_ffmpeg_exe()
-        valid_muxed_paths = []
+        concat_list_path = os.path.join(self.temp_dir, f"concat_{episode_id}.txt")
+        srt_combined_path = os.path.join(self.temp_dir, f"subtitles_{episode_id}.srt")
+        combined_audio_path = os.path.join(self.temp_dir, f"audio_{episode_id}.wav")
+
+        valid_video_paths = []
+        valid_audio_paths = []
+        combined_srt_lines = []
+        global_srt_index = 1
+        current_time_offset = 0.0
 
         for scene_idx, scene in enumerate(scene_assets):
-            # Collect scene video path — strip query strings (?t=timestamp) before file lookup
+            # Collect scene video path
             video_rel = scene.get("video_url")
-            if not video_rel:
-                continue
-            video_filename = os.path.basename(video_rel.split("?")[0])
-            full_video_path = os.path.join(self.media_dir, video_filename)
-            if not os.path.exists(full_video_path):
-                logger.warning("Video file not found: %s (from URL: %s)", full_video_path, video_rel)
-                continue
+            if video_rel:
+                video_filename = os.path.basename(video_rel)
+                full_video_path = os.path.join(self.media_dir, video_filename)
+                if os.path.exists(full_video_path):
+                    valid_video_paths.append(full_video_path)
 
-            # Collect scene character audio path — strip query strings before lookup
-            audio_rel = scene.get("audio_url")
-            full_audio_path = None
+            # Collect scene character audio path
+            audio_rel = scene.get("audio_url") or scene.get("score_url")
             if audio_rel:
-                audio_filename = os.path.basename(audio_rel.split("?")[0])
+                audio_filename = os.path.basename(audio_rel)
+                # Try media_output dir first, then audio/ subdirectory
                 candidate_paths = [
                     os.path.join(self.media_dir, audio_filename),
                     os.path.join(self.media_dir, "audio", audio_filename),
-                    audio_rel.split("?")[0],
+                    audio_rel,  # absolute path fallback
                 ]
                 for candidate in candidate_paths:
                     if os.path.exists(candidate) and os.path.getsize(candidate) > 0:
-                        full_audio_path = candidate
+                        valid_audio_paths.append(candidate)
                         break
 
-            # Collect scene music/score path — strip query strings before lookup
+            # Build combined master subtitle file
+            srt_content = scene.get("subtitle_srt", "")
+            duration = scene.get("duration_seconds", 6.0)
+
+            if srt_content:
+                lines = srt_content.strip().split("\n")
+                i = 0
+                while i < len(lines):
+                    if lines[i].isdigit():
+                        i += 1
+                        if i < len(lines) and "-->" in lines[i]:
+                            start_str, end_str = lines[i].split("-->")
+                            i += 1
+                            text_lines = []
+                            while i < len(lines) and lines[i].strip() != "":
+                                text_lines.append(lines[i])
+                                i += 1
+                            
+                            combined_srt_lines.append(f"{global_srt_index}")
+                            combined_srt_lines.append(f"{start_str.strip()} --> {end_str.strip()}")
+                            combined_srt_lines.extend(text_lines)
+                            combined_srt_lines.append("")
+                            global_srt_index += 1
+                    i += 1
+
+            current_time_offset += duration
+
+        # Save combined SRT file
+        with open(srt_combined_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(combined_srt_lines))
+
+        # Save video list for FFmpeg concatenation
+        with open(concat_list_path, "w", encoding="utf-8") as f:
+            for vp in valid_video_paths:
+                clean_p = vp.replace("\\", "/")
+                f.write(f"file '{clean_p}'\n")
+
+        # Collect score/music paths if available
+        valid_score_paths = []
+        for scene in scene_assets:
             score_rel = scene.get("score_url")
-            full_score_path = None
             if score_rel:
-                score_filename = os.path.basename(score_rel.split("?")[0])
+                score_filename = os.path.basename(score_rel)
                 candidate_paths = [
                     os.path.join(self.media_dir, score_filename),
                     os.path.join(self.media_dir, "audio", score_filename),
-                    score_rel.split("?")[0],
+                    score_rel,
                 ]
                 for candidate in candidate_paths:
                     if os.path.exists(candidate) and os.path.getsize(candidate) > 0:
-                        full_score_path = candidate
+                        valid_score_paths.append(candidate)
                         break
 
-            # Save scene-specific subtitles
-            srt_content = scene.get("subtitle_srt", "")
-            scene_srt_path = os.path.join(self.temp_dir, f"subtitles_{episode_id}_{scene_idx}.srt")
-            has_subtitles = False
-            if srt_content.strip():
-                with open(scene_srt_path, "w", encoding="utf-8") as f:
-                    f.write(srt_content.strip() + "\n")
-                has_subtitles = True
+        combined_music_path = os.path.join(self.temp_dir, f"music_{episode_id}.wav")
+        has_music = self._combine_wav_files(valid_score_paths, combined_music_path) if valid_score_paths else False
 
-            muxed_filename = f"muxed_scene_{episode_id}_{scene_idx}.mp4"
-            muxed_path = os.path.join(self.temp_dir, muxed_filename)
+        has_audio = self._combine_wav_files(valid_audio_paths, combined_audio_path) if valid_audio_paths else False
 
-            # Build FFmpeg command to loop video, mix audio/music, and burn subtitles
-            cmd = [ffmpeg_exe, "-y", "-stream_loop", "-1", "-i", full_video_path]
+        ffmpeg_exe = self._get_ffmpeg_exe()
+
+        # Execute FFmpeg Command to Concatenate Video + Merge Voice & Score Audio Tracks + Burn Subtitles
+        try:
+            cmd = [ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", concat_list_path]
             
-            has_a = full_audio_path and os.path.exists(full_audio_path)
-            has_m = full_score_path and os.path.exists(full_score_path)
-
-            if has_a and has_m:
-                cmd.extend(["-i", full_audio_path, "-i", full_score_path])
+            if has_audio and has_music and os.path.exists(combined_audio_path) and os.path.exists(combined_music_path):
+                cmd.extend(["-i", combined_audio_path, "-i", combined_music_path])
                 cmd.extend([
                     "-filter_complex",
                     "[1:a]aformat=sample_rates=44100:channel_layouts=stereo[v];[2:a]volume=0.25,aformat=sample_rates=44100:channel_layouts=stereo[m];[v][m]amix=inputs=2:duration=longest[aout]",
                     "-map", "0:v:0",
                     "-map", "[aout]"
                 ])
-            elif has_a:
-                cmd.extend(["-i", full_audio_path, "-map", "0:v:0", "-map", "1:a:0"])
-            elif has_m:
-                cmd.extend(["-i", full_score_path, "-map", "0:v:0", "-map", "1:a:0"])
+            elif has_audio and os.path.exists(combined_audio_path):
+                cmd.extend(["-i", combined_audio_path, "-map", "0:v:0", "-map", "1:a:0"])
+            elif has_music and os.path.exists(combined_music_path):
+                cmd.extend(["-i", combined_music_path, "-map", "0:v:0", "-map", "1:a:0"])
             else:
-                cmd.extend(["-map", "0:v:0"])
+                cmd.extend(["-map", "0:v:0", "-an"])
 
-            if has_subtitles:
-                clean_srt = scene_srt_path.replace("\\", "/").replace(":", "\\:")
+            if os.path.exists(srt_combined_path) and os.path.getsize(srt_combined_path) > 0:
+                clean_srt = srt_combined_path.replace("\\", "/").replace(":", "\\:")
                 cmd.extend(["-vf", f"subtitles='{clean_srt}'"])
 
             cmd.extend([
@@ -151,47 +208,115 @@ class FFmpegVideoRenderEngine:
                 "-c:a", "aac",
                 "-b:a", "192k",
                 "-shortest",
-                muxed_path
+                output_path
             ])
 
-            logger.info(f"Muxing scene {scene_idx} with command: {' '.join(cmd)}")
-            try:
-                subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if os.path.exists(muxed_path) and os.path.getsize(muxed_path) > 0:
-                    valid_muxed_paths.append(muxed_path)
-                else:
-                    valid_muxed_paths.append(full_video_path)
-            except Exception as e:
-                logger.warning(f"Muxing scene {scene_idx} failed: {e}. Falling back to raw video.")
-                valid_muxed_paths.append(full_video_path)
-
-        if not valid_muxed_paths:
-            logger.warning("No valid video scenes to concatenate.")
-            return ""
-
-        # Concatenate all muxed scene videos
-        with open(concat_list_path, "w", encoding="utf-8") as f:
-            for vp in valid_muxed_paths:
-                clean_p = vp.replace("\\", "/")
-                f.write(f"file '{clean_p}'\n")
-
-        import time
-        timestamp = int(time.time())
-        try:
-            concat_cmd = [
-                ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", concat_list_path,
-                "-c", "copy", output_path
-            ]
-            logger.info(f"Concatenating episode with command: {' '.join(concat_cmd)}")
-            subprocess.run(concat_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            logger.info(f"FFmpeg render successful: {output_path}")
-            return f"/media/{output_filename}?t={timestamp}"
+            logger.info("Executing render_engine FFmpeg command:\n%s", " ".join(cmd))
+            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            logger.info(f"FFmpeg render successful with audio: {output_path}")
+            
+            if not self._verify_audio_stream(output_path):
+                raise ValueError("Final MP4 has no audio stream! Muxing failed.")
+                
+            self._validate_and_print_final_video(output_path)
+                
+            return f"/media/{output_filename}"
         except Exception as e:
-            logger.warning(f"Final concatenation failed: {e}.")
-            if valid_muxed_paths:
-                return f"/media/{os.path.basename(valid_muxed_paths[0])}?t={timestamp}"
+            logger.warning(f"FFmpeg execution failed: {e}. Executing direct audio-video multiplex fallback.")
 
-        return f"/media/{output_filename}?t={timestamp}"
+        # Fallback: Multiplex primary video with character audio file if available
+        if valid_video_paths:
+            primary_video = valid_video_paths[0]
+            primary_audio = valid_audio_paths[0] if valid_audio_paths else None
+            if primary_audio and os.path.exists(primary_audio):
+                try:
+                    cmd_fallback = [
+                        ffmpeg_exe, "-y",
+                        "-i", primary_video,
+                        "-i", primary_audio,
+                        "-map", "0:v:0",
+                        "-map", "1:a:0",
+                        "-c:v", "libx264",
+                        "-pix_fmt", "yuv420p",
+                        "-c:a", "aac",
+                        "-b:a", "192k",
+                        "-shortest",
+                        output_path
+                    ]
+                    subprocess.run(cmd_fallback, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    
+                    if not self._verify_audio_stream(output_path):
+                        raise ValueError("Fallback Final MP4 has no audio stream!")
+                        
+                    self._validate_and_print_final_video(output_path)
+                        
+                    return f"/media/{output_filename}"
+                except Exception as fb_err:
+                    logger.warning(f"Fallback multiplex failed: {fb_err}")
+            
+            primary_name = os.path.basename(primary_video)
+            return f"/media/{primary_name}"
+
+        return f"/media/{output_filename}"
+
+    def _validate_and_print_final_video(self, video_path: str):
+        if not os.path.exists(video_path):
+            raise RuntimeError(f"Video file {video_path} does not exist.")
+        
+        file_size = os.path.getsize(video_path)
+        if file_size == 0:
+            raise RuntimeError(f"Video file {video_path} is 0 bytes.")
+            
+        import subprocess
+        import json
+        ffmpeg_exe = self._get_ffmpeg_exe()
+        ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+        if not os.path.exists(ffprobe_exe):
+            logger.warning("ffprobe not found, skipping deep validation.")
+            return
+
+        cmd = [
+            ffprobe_exe,
+            "-v", "error",
+            "-show_format",
+            "-show_streams",
+            "-of", "json",
+            video_path
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"ffprobe validation failed: {res.stderr}")
+            
+        data = json.loads(res.stdout)
+        format_name = data.get("format", {}).get("format_name", "")
+        duration = data.get("format", {}).get("duration", "unknown")
+        
+        streams = data.get("streams", [])
+        v_stream = next((s for s in streams if s.get("codec_type") == "video"), None)
+        a_stream = next((s for s in streams if s.get("codec_type") == "audio"), None)
+        
+        v_codec = v_stream.get("codec_name") if v_stream else "None"
+        a_codec = a_stream.get("codec_name") if a_stream else "None"
+        
+        vlc_compatible = "PASS" if ("mp4" in format_name and v_codec == "h264" and a_codec == "aac") else "FAIL"
+        
+        print("\n" + "=" * 50)
+        print("FINAL MEDIA VALIDATION")
+        print("=" * 50)
+        print(f"\nFILE:\n{video_path}\n")
+        print("EXISTS:\ntrue\n")
+        print(f"SIZE:\n{file_size}\n")
+        print(f"CONTAINER:\n{format_name}\n")
+        print(f"VIDEO:\n{v_codec}\n")
+        print(f"AUDIO:\n{a_codec}\n")
+        print(f"DURATION:\n{duration}\n")
+        print(f"VIDEO STREAM:\n{'true' if v_stream else 'false'}\n")
+        print(f"AUDIO STREAM:\n{'true' if a_stream else 'false'}\n")
+        print(f"VLC COMPATIBILITY:\n{vlc_compatible}")
+        print("=" * 50 + "\n")
+        
+        if vlc_compatible == "FAIL":
+             logger.warning(f"Validation WARNING: Video may not be fully compatible. format: {format_name}, video: {v_codec}, audio: {a_codec}")
 
 render_engine = FFmpegVideoRenderEngine()
 

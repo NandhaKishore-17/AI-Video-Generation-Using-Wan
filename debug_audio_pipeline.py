@@ -105,14 +105,17 @@ async def test_pipeline():
     final_output = res["output_path"]
     logger.info(f"Final output video path: {final_output}")
     
-    # Run ffprobe on final video
+    # Run ffprobe / ffmpeg probing on final video
     if os.path.exists(final_output):
-        cmd = ["ffprobe", "-v", "error", "-show_entries", "stream=index,codec_name,codec_type,duration,channels,sample_rate", "-of", "default=noprint_wrappers=1", final_output]
-        logger.info(f"Running ffprobe command: {' '.join(cmd)}")
-        probe_res = subprocess.run(cmd, capture_output=True, text=True)
-        logger.info(f"ffprobe output:\n{probe_res.stdout}")
-        if probe_res.stderr:
-            logger.warning(f"ffprobe stderr:\n{probe_res.stderr}")
+        try:
+            import imageio_ffmpeg
+            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+            cmd = [ffmpeg_exe, "-i", final_output]
+            logger.info(f"Running probing command: {' '.join(cmd)}")
+            probe_res = subprocess.run(cmd, capture_output=True, text=True)
+            logger.info(f"FFmpeg Stream & Codec Probing Output:\n{probe_res.stderr}")
+        except Exception as e:
+            logger.error(f"Probing error: {e}")
 
 if __name__ == "__main__":
     asyncio.run(test_pipeline())

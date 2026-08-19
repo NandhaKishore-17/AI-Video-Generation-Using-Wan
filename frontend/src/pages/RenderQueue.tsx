@@ -48,11 +48,11 @@ export const RenderQueue: React.FC<RenderQueueProps> = ({ isGenerating, refreshT
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
-          <ListOrdered className="w-6 h-6 text-cyan-400" />
+        <h1 className="text-2xl font-extrabold text-text-primary tracking-tight flex items-center gap-2">
+          <ListOrdered className="w-6 h-6 text-accent-primary" />
           <span>MULTI-STAGE RENDER QUEUE MONITOR</span>
         </h1>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-text-secondary mt-1">
           Real-time tracking of generation stages: Qwen Screenplay → FLUX Keyframes → CogVideoX Motion → Piper TTS → FFmpeg Compositing.
         </p>
       </div>
@@ -64,29 +64,29 @@ export const RenderQueue: React.FC<RenderQueueProps> = ({ isGenerating, refreshT
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className={`p-2 rounded-xl border ${
-                    task.stage === 'DONE' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-cyan-950 text-cyan-400 border-cyan-800 animate-pulse'
+                    task.stage === 'DONE' ? 'bg-neutral-soft text-accent-primary border-accent-primary' : 'bg-neutral-soft text-accent-primary border-accent-primary animate-pulse'
                   }`}>
                     {task.stage === 'DONE' ? <CheckCircle2 className="w-5 h-5" /> : <Cpu className="w-5 h-5" />}
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">RENDER TASK #{task.id}</h4>
-                    <p className="text-xs text-slate-400 font-mono">{task.current_step_details}</p>
+                    <h4 className="font-bold text-text-primary text-sm">RENDER TASK #{task.id}</h4>
+                    <p className="text-xs text-text-secondary font-mono">{task.current_step_details}</p>
                   </div>
                 </div>
 
                 <div className="text-right font-mono">
-                  <span className="text-sm font-bold text-cyan-400">{task.progress_percentage}%</span>
-                  <span className="text-[10px] text-slate-500 block">STAGE: {task.stage}</span>
+                  <span className="text-sm font-bold text-accent-primary">{task.progress_percentage}%</span>
+                  <span className="text-[10px] text-text-secondary block">STAGE: {task.stage}</span>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full h-2 rounded-full bg-slate-950 overflow-hidden border border-slate-800">
+              <div className="w-full h-2 rounded-full bg-neutral-soft overflow-hidden border border-neutral-border">
                 <div
                   className={`h-full transition-all duration-500 ${
                     task.stage === 'DONE'
-                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500'
-                      : 'bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 animate-pulse'
+                      ? 'bg-accent-primary'
+                      : 'bg-accent-primary animate-pulse'
                   }`}
                   style={{ width: `${task.progress_percentage}%` }}
                 />

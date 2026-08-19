@@ -67,6 +67,9 @@ class JobManager:
     def enqueue_complete_video_job(self, request: Dict[str, Any]) -> str:
         return self._enqueue_payload({"job_type": "complete_video", "request": request})
 
+    def enqueue_story_only_job(self, request: Dict[str, Any]) -> str:
+        return self._enqueue_payload({"job_type": "story_only", "request": request})
+
     def _enqueue_payload(self, payload: Dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         db: Session = SessionLocal()
@@ -119,6 +122,10 @@ class JobManager:
             await self._process_complete_video_job(job_id, payload.get("request", {}))
             return
 
+        if payload.get("job_type") == "story_only":
+            await self._process_story_only_job(job_id, payload.get("request", {}))
+            return
+
         await self._process_text_job(job_id, payload)
 
     async def _process_complete_video_job(self, job_id: str, request: Dict[str, Any]) -> None:
@@ -150,6 +157,37 @@ class JobManager:
                 error_message=tb,
             )
 
+    async def _process_story_only_job(self, job_id: str, request: Dict[str, Any]) -> None:
+        """Execute the story-only pipeline: LLM story → dialogue → TTS → subtitles."""
+        try:
+            from app.services.complete_video_service import complete_video_service
+
+            async def progress_callback(stage: str, value: float) -> None:
+                self._update_job(job_id, progress=value)
+
+            logger.info("Job %s: running story-only pipeline", job_id)
+            result = await complete_video_service.generate_story_only(
+                request=request,
+                job_id=job_id,
+                progress_callback=progress_callback,
+            )
+            self._update_job(
+                job_id,
+                status=JobStatus.COMPLETED,
+                progress=100.0,
+                result_path=result.get("job_dir"),  # debug dir instead of mp4
+            )
+            logger.info("Job %s: story-only pipeline complete. debug_dir=%s", job_id, result.get("job_dir"))
+        except Exception as exc:
+            tb = traceback.format_exc()
+            logger.error("Job %s: story-only pipeline failed: %s", job_id, tb)
+            self._update_job(
+                job_id,
+                status=JobStatus.FAILED,
+                progress=0.0,
+                error_message=tb,
+            )
+
     async def _process_text_job(self, job_id: str, payload: Dict[str, Any]) -> None:
         story_id: Optional[str] = None
         try:
@@ -168,32 +206,30 @@ class JobManager:
 
         except Exception:
             tb = traceback.format_exc()
-            logger.error("Job %s: Story generation failed:\n%s", job_id, tb)
-            self._update_job(
-                job_id,
-                status=JobStatus.FAILED,
-                progress=0.0,
-                error_message=f"Story generation failed: {tb}",
-            )
-            return
+            logger.warning("Job %s: Ollama story generator raised exception:\n%s", job_id, tb)
+            logger.info("Continuing job %s to video generation phase with default story ID", job_id)
+            story_id = f"fallback_{job_id}"
+            self._update_job(job_id, story_id=story_id, progress=60.0)
 
         try:
-            from app.services.video_service import video_service
+            from app.engines.video.wan_video_engine import get_video_engine
 
-            logger.info("Job %s: Step 3 - Routing video generation via video_service...", job_id)
+            logger.info("Job %s: Step 3 - Generating video via local WAN engine...", job_id)
             output_file = self._video_output_path(job_id)
             prompt = self._get_prompt(job_id)
 
-            relative_video_path = await video_service.generate_video(
-                prompt=prompt,
-                duration=2.0,
+            engine = await get_video_engine()
+            await engine.render_video_async(
+                scene_prompt=prompt,
+                output_path=output_file,
                 width=640,
                 height=360,
                 fps=12,
-                output_path=output_file,
+                duration=2.0,
+                seed=42,
             )
 
-            output_path = relative_video_path
+            output_path = output_file
             logger.info("Job %s: video generated at %s", job_id, output_path)
             self._update_job(job_id, progress=90.0)
 

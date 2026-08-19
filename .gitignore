@@ -1,54 +1,62 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
-*.pyo
-.pytest_cache/
-.mypy_cache/
-
-# Virtual environments
 .venv/
 venv/
 env/
-backend/.venv/
 
-# Environment / secrets
+# Environment
 .env
 .env.*
-!.env.example
 
 # Node
 node_modules/
 frontend/node_modules/
-frontend/dist/
+dist/
+build/
+.vite/
 
 # Generated media
+audio/
+media/
 media_output/
+temp/
+*.wav
+*.mp3
 *.mp4
-*.webm
 *.mov
 *.avi
+*.mkv
+*.webm
 
-# Model files
-*.safetensors
-*.ckpt
-*.pth
-*.bin
-*.gguf
-*.pt
+# RAG / Knowledge data
+backend/data/knowledge/
+backend/data/qdrant/
+backend/data/qdrant_knowledge/
+backend/data/characters/memories/
+backend/backend/data/characters/
 
-# Hugging Face cache
-.cache/
-huggingface/
-models/
+# Databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 
-# Logs
-*.log
-logs/
-
-# OS
-.DS_Store
-Thumbs.db
+# Debug / temporary files
+backend/curl_resp.txt
+backend/debug_rag.txt
+backend/error_500.txt
+backend/test2_ref.txt
+backend/test_reference.txt
+debug_vlc.py
+debug_voice.py
+patch_api.py
 
 # IDE
 .vscode/
 .idea/
+
+# OS
+.DS_Store
+Thumbs.db
