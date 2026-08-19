@@ -165,6 +165,7 @@ class SchedulerConfig(Base):
     last_run = Column(DateTime, nullable=True)
     next_run = Column(DateTime, nullable=True)
     auto_publish = Column(Boolean, default=True)
+    mode = Column(String(20), default="interval")  # "interval" or "continuous"
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

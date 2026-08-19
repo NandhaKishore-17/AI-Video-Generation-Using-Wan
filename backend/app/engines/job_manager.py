@@ -212,22 +212,24 @@ class JobManager:
             self._update_job(job_id, story_id=story_id, progress=60.0)
 
         try:
-            from app.services.video_service import video_service
+            from app.engines.video.wan_video_engine import get_video_engine
 
-            logger.info("Job %s: Step 3 - Routing video generation via video_service...", job_id)
+            logger.info("Job %s: Step 3 - Generating video via local WAN engine...", job_id)
             output_file = self._video_output_path(job_id)
             prompt = self._get_prompt(job_id)
 
-            relative_video_path = await video_service.generate_video(
-                prompt=prompt,
-                duration=2.0,
+            engine = await get_video_engine()
+            await engine.render_video_async(
+                scene_prompt=prompt,
+                output_path=output_file,
                 width=640,
                 height=360,
                 fps=12,
-                output_path=output_file,
+                duration=2.0,
+                seed=42,
             )
 
-            output_path = relative_video_path
+            output_path = output_file
             logger.info("Job %s: video generated at %s", job_id, output_path)
             self._update_job(job_id, progress=90.0)
 

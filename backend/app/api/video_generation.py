@@ -4,7 +4,6 @@ from typing import Dict, Any
 from uuid import uuid4
 
 from app.schemas.schemas import VideoGenerateRequest
-from app.services.video_service import video_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -14,32 +13,43 @@ video_tasks: Dict[str, Any] = {}
 
 @router.get("/video/health", status_code=200)
 async def health_check() -> Dict[str, Any]:
-    """Health check for the remote video generation provider."""
+    """Health check for the local WAN video generation engine."""
     return {
-        "provider": "wan_remote",
-        "configured": bool(settings.WAN_API_URL and settings.WAN_API_KEY),
-        "model": getattr(settings, "WAN_MODEL", "Wan-AI/Wan2.2-TI2V-5B")
+        "provider": "wan_local",
+        "engine": settings.VIDEO_ENGINE,
+        "model_path": settings.WAN_MODEL_PATH,
+        "device": settings.WAN_DEVICE,
     }
 
 async def _background_generate(task_id: str, request: VideoGenerateRequest):
     try:
         video_tasks[task_id] = {"status": "processing"}
-        video_path = await video_service.generate_video(
-            prompt=request.prompt,
-            duration=request.duration or 2.0,
+        from app.engines.video.wan_video_engine import get_video_engine
+        import os
+
+        engine = await get_video_engine()
+        output_dir = settings.MEDIA_OUTPUT_DIR
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"{task_id}.mp4")
+
+        await engine.render_video_async(
+            scene_prompt=request.prompt,
+            output_path=output_path,
             width=request.width or 640,
             height=request.height or 360,
-            fps=request.fps or 12
+            fps=request.fps or 12,
+            duration=request.duration or 2.0,
+            seed=42,
         )
         video_tasks[task_id] = {
             "status": "completed",
-            "video_url": video_path
+            "video_url": f"/media/{task_id}.mp4",
         }
     except Exception as e:
         logger.exception("Failed to generate video in background")
         video_tasks[task_id] = {
             "status": "failed",
-            "error": str(e)
+            "error": str(e),
         }
 
 @router.post("/video/generate", status_code=202)

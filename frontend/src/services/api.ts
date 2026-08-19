@@ -348,8 +348,8 @@ export const api = {
   },
 
   // Episodes Generation & Catalog
-  async generateEpisode(universe_id: string, custom_prompt?: string, scene_duration_seconds?: number, reference_document_id?: string, reference_influence?: string): Promise<Episode> {
-    const res = await axios.post(`${API_BASE}/episodes/generate`, { universe_id, custom_prompt, scene_duration_seconds, reference_document_id, reference_influence });
+  async generateEpisode(universe_id: string, custom_prompt?: string, episode_duration_seconds?: number, reference_document_id?: string, reference_influence?: string): Promise<Episode> {
+    const res = await axios.post(`${API_BASE}/episodes/generate`, { universe_id, custom_prompt, episode_duration_seconds, reference_document_id, reference_influence });
     if (res.data) {
       const currentEps = getLocalData<Episode[]>('episodes', []);
       setLocalData('episodes', [res.data, ...currentEps]);
@@ -423,13 +423,13 @@ export const api = {
   },
 
   // Scheduler
-  async startScheduler(interval_minutes = 60, auto_publish = true): Promise<SchedulerStatus> {
+  async startScheduler(interval_minutes = 60, auto_publish = true, mode = 'interval'): Promise<SchedulerStatus> {
     try {
-      const res = await axios.post(`${API_BASE}/scheduler/start`, { interval_minutes, auto_publish });
+      const res = await axios.post(`${API_BASE}/scheduler/start`, { interval_minutes, auto_publish, mode });
       return res.data;
     } catch {
       const nextRun = new Date(Date.now() + interval_minutes * 60000).toISOString();
-      const status = { is_running: true, interval_minutes, auto_publish, last_run: new Date().toISOString(), next_run: nextRun };
+      const status = { is_running: true, interval_minutes, auto_publish, mode, last_run: new Date().toISOString(), next_run: nextRun };
       setLocalData('scheduler_status', status);
       return status;
     }
@@ -517,9 +517,9 @@ export const api = {
         total_characters: chars.length + 2,
         completed_renders: eps.filter(e => e.status === 'COMPLETED').length,
         engine_benchmarks: {
-          qwen_llm_avg_sec: 1.2,
+          gemma_llm_avg_sec: 1.2,
           flux_image_avg_sec: 3.4,
-          cogvideox_video_avg_sec: 5.1,
+          wan_video_avg_sec: 5.1,
           piper_voice_avg_sec: 0.8,
           ffmpeg_stitch_avg_sec: 1.5
         },

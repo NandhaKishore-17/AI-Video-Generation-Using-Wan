@@ -118,7 +118,8 @@ class StoryArcResponse(BaseModel):
 class EpisodeGenerateRequest(BaseModel):
     universe_id: str
     custom_prompt: Optional[str] = None
-    scene_duration_seconds: Optional[float] = 8.0
+    scene_duration_seconds: Optional[float] = None  # Kept for backward compat; prefer episode_duration_seconds
+    episode_duration_seconds: Optional[float] = 30.0  # Total episode duration in seconds
     reference_document_id: Optional[str] = None
     reference_influence: Optional[str] = "Medium"  # Low, Medium, High
 
@@ -219,6 +220,7 @@ class MemoryQueryResult(BaseModel):
 class SchedulerStartRequest(BaseModel):
     interval_minutes: Optional[int] = 60
     auto_publish: Optional[bool] = True
+    mode: Optional[str] = "interval"  # "interval" or "continuous"
 
 class SchedulerStatusResponse(BaseModel):
     is_running: bool
@@ -226,6 +228,7 @@ class SchedulerStatusResponse(BaseModel):
     last_run: Optional[datetime]
     next_run: Optional[datetime]
     auto_publish: bool
+    mode: str = "interval"  # "interval" or "continuous"
 
 
 # --- LLM Validation Schemas ---

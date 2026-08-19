@@ -273,5 +273,71 @@
     "rate": "-2%",
     "name": "Ryan (British)",
     "description": "Polished British cinematic male voice"
+  },
+  "KAELEN THORNE": {
+    "character": "KAELEN THORNE",
+    "language": "en",
+    "gender": "male",
+    "archetype": "young_male",
+    "voice_id": "en-US-AndrewNeural",
+    "pitch": "+0Hz",
+    "rate": "+0%",
+    "name": "Andrew",
+    "description": "Young energetic natural male voice"
+  },
+  "SERAPHINA \u2018SERA\u2019 VOLKOV": {
+    "character": "SERAPHINA \u2018SERA\u2019 VOLKOV",
+    "language": "en",
+    "gender": "male",
+    "archetype": "deep_male",
+    "voice_id": "en-US-ChristopherNeural",
+    "pitch": "-4Hz",
+    "rate": "-3%",
+    "name": "Christopher",
+    "description": "Resonant deep cinematic male voice"
+  },
+  "COMMANDER SILAS VANE": {
+    "character": "COMMANDER SILAS VANE",
+    "language": "en",
+    "gender": "male",
+    "archetype": "british_male",
+    "voice_id": "en-GB-RyanNeural",
+    "pitch": "-1Hz",
+    "rate": "-2%",
+    "name": "Ryan (British)",
+    "description": "Polished British cinematic male voice"
+  },
+  "COMMANDER VANE": {
+    "character": "COMMANDER VANE",
+    "language": "en",
+    "gender": "male",
+    "archetype": "calm_male",
+    "voice_id": "en-US-EricNeural",
+    "pitch": "+0Hz",
+    "rate": "-2%",
+    "name": "Eric",
+    "description": "Calm and articulate professional male voice"
+  },
+  "SERA": {
+    "character": "SERA",
+    "language": "en",
+    "gender": "male",
+    "archetype": "british_male",
+    "voice_id": "en-GB-RyanNeural",
+    "pitch": "-1Hz",
+    "rate": "-2%",
+    "name": "Ryan (British)",
+    "description": "Polished British cinematic male voice"
+  },
+  "SERA VOLKOV": {
+    "character": "SERA VOLKOV",
+    "language": "en",
+    "gender": "male",
+    "archetype": "calm_male",
+    "voice_id": "en-US-EricNeural",
+    "pitch": "+0Hz",
+    "rate": "-2%",
+    "name": "Eric",
+    "description": "Calm and articulate professional male voice"
   }
 }

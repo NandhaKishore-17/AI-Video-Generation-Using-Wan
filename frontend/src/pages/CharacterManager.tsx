@@ -124,10 +124,10 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
       {/* Add Character Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-xl bg-[#0E1424] border border-slate-700/80 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                <UserPlus className="w-5 h-5 text-cyan-400" />
+          <div className="relative w-full max-w-xl bg-[#0E1424] border border-neutral-border/80 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-neutral-border pb-4">
+              <h2 className="text-xl font-bold text-text-primary flex items-center space-x-2">
+                <UserPlus className="w-5 h-5 text-accent-primary" />
                 <span>{editingCharacterId ? 'EDIT CHARACTER DETAILS' : 'ADD NEW CHARACTER DETAILS'}</span>
               </h2>
               <button
@@ -135,7 +135,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
                   setShowAddModal(false);
                   handleResetForm();
                 }}
-                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1.5 rounded-lg bg-neutral-soft text-text-secondary hover:text-text-primary"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -144,23 +144,23 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
             <form onSubmit={handleAddCharacter} className="space-y-4 text-xs font-mono">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-400 mb-1">CHARACTER NAME</label>
+                  <label className="block text-text-secondary mb-1">CHARACTER NAME</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Commander Vex"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-neutral-soft border border-neutral-border rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:border-accent-primary"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">ROLE</label>
+                  <label className="block text-text-secondary mb-1">ROLE</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-neutral-soft border border-neutral-border rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:border-accent-primary"
                   >
                     <option value="Protagonist">Protagonist</option>
                     <option value="Deuteragonist">Deuteragonist</option>
@@ -172,39 +172,39 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">PERSONALITY TRAITS</label>
+                <label className="block text-text-secondary mb-1">PERSONALITY TRAITS</label>
                 <input
                   type="text"
                   value={personality}
                   onChange={(e) => setPersonality(e.target.value)}
                   placeholder="e.g. Tactical genius, quiet, deeply loyal"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-neutral-soft border border-neutral-border rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:border-accent-primary"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">FLUX / SDXL VISUAL APPEARANCE PROMPT</label>
+                <label className="block text-text-secondary mb-1">FLUX / SDXL VISUAL APPEARANCE PROMPT</label>
                 <textarea
                   value={appearancePrompt}
                   onChange={(e) => setAppearancePrompt(e.target.value)}
                   placeholder="Detailed visual prompt anchor (e.g. Futuristic commander in chrome armor, glowing cyber eye, 8k portrait)"
                   rows={3}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-neutral-soft border border-neutral-border rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:border-accent-primary"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-400 mb-1 flex items-center justify-between">
+                  <label className="block text-text-secondary mb-1 flex items-center justify-between">
                     <span>REALISTIC HUMAN VOICE PRESET</span>
-                    <span className="text-[10px] text-cyan-400 font-bold">F5-TTS Zero-Shot / 24kHz HD</span>
+                    <span className="text-[10px] text-accent-primary font-bold">F5-TTS Zero-Shot / 24kHz HD</span>
                   </label>
                   <select
                     value={voicePreset}
                     onChange={(e) => setVoicePreset(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-neutral-soft border border-neutral-border rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:border-accent-primary"
                   >
                     {availableVoices.map((v) => (
                       <option key={v.id} value={v.id}>
@@ -215,7 +215,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">VOICE PITCH: {voicePitch}x</label>
+                  <label className="block text-text-secondary mb-1">VOICE PITCH: {voicePitch}x</label>
                   <input
                     type="range"
                     min="0.5"
@@ -229,13 +229,13 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">BIO & BACKSTORY</label>
+                <label className="block text-text-secondary mb-1">BIO & BACKSTORY</label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Character origin story and background..."
                   rows={2}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-neutral-soft border border-neutral-border rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:border-accent-primary"
                 />
               </div>
 
@@ -243,7 +243,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white shadow-glow-cyan flex items-center justify-center space-x-2"
+                  className="w-full py-3 rounded-xl font-bold bg-neutral-soft text-text-primary shadow-sm flex items-center justify-center space-x-2"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>
@@ -261,11 +261,11 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Users className="w-6 h-6 text-purple-400" />
+          <h1 className="text-2xl font-extrabold text-text-primary tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 text-text-secondary" />
             <span>CHARACTER CONSISTENCY & VOICE HUB</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-text-secondary mt-1">
             Maintain exact visual appearance anchors for FLUX diffusers and voice actor presets for Piper/Kokoro TTS.
           </p>
         </div>
@@ -275,7 +275,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
             handleResetForm();
             setShowAddModal(true);
           }}
-          className="px-5 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-cyan-500 to-purple-600 hover:brightness-110 text-white shadow-glow-cyan flex items-center space-x-2"
+          className="px-5 py-2.5 rounded-xl font-bold text-xs bg-accent-primary hover:brightness-110 text-text-primary shadow-sm flex items-center space-x-2"
         >
           <UserPlus className="w-4 h-4" />
           <span>ADD NEW CHARACTER</span>
@@ -288,22 +288,22 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
           <GlassCard key={char.id} className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white">{char.name}</h3>
-                <span className="text-xs px-2.5 py-0.5 rounded-md bg-purple-950 text-purple-300 border border-purple-800 font-mono">
+                <h3 className="text-lg font-bold text-text-primary">{char.name}</h3>
+                <span className="text-xs px-2.5 py-0.5 rounded-md bg-neutral-soft text-text-secondary border border-neutral-border font-mono">
                   {char.role}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleStartEdit(char)}
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-cyan-900/80 text-slate-400 hover:text-cyan-300 border border-slate-800 transition-colors"
+                  className="p-2 rounded-xl bg-white hover:bg-neutral-soft text-text-secondary hover:text-accent-primary border border-neutral-border transition-colors"
                   title="Edit Character"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDeleteCharacter(char.id)}
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-rose-900/80 text-slate-400 hover:text-rose-300 border border-slate-800 transition-colors"
+                  className="p-2 rounded-xl bg-white hover:bg-neutral-soft text-text-secondary hover:text-text-secondary border border-neutral-border transition-colors"
                   title="Delete Character"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -312,28 +312,28 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({ activeUniver
             </div>
 
 
-            <p className="text-xs text-slate-300 italic">{char.personality}</p>
+            <p className="text-xs text-text-secondary italic">{char.personality}</p>
 
             <div className="space-y-2 text-xs font-mono">
-              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-                <div className="flex items-center space-x-1.5 text-cyan-400 font-semibold">
+              <div className="p-3 rounded-lg bg-neutral-soft border border-neutral-border space-y-1">
+                <div className="flex items-center space-x-1.5 text-accent-primary font-semibold">
                   <Eye className="w-3.5 h-3.5" />
                   <span>FLUX VISUAL ANCHOR PROMPT</span>
                 </div>
-                <p className="text-slate-300 text-[11px]">{char.appearance_prompt}</p>
+                <p className="text-text-secondary text-[11px]">{char.appearance_prompt}</p>
               </div>
 
-              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-                <div className="flex items-center space-x-1.5 text-emerald-400 font-semibold">
+              <div className="p-3 rounded-lg bg-neutral-soft border border-neutral-border space-y-1">
+                <div className="flex items-center space-x-1.5 text-accent-primary font-semibold">
                   <Mic className="w-3.5 h-3.5" />
                   <span>PIPER / KOKORO VOICE PRESET</span>
                 </div>
-                <p className="text-slate-300 text-[11px]">{char.voice_actor_preset} (Pitch: {char.voice_pitch}x)</p>
+                <p className="text-text-secondary text-[11px]">{char.voice_actor_preset} (Pitch: {char.voice_pitch}x)</p>
               </div>
             </div>
 
             {char.bio && (
-              <p className="text-xs text-slate-400 border-t border-slate-800/80 pt-2">{char.bio}</p>
+              <p className="text-xs text-text-secondary border-t border-neutral-border pt-2">{char.bio}</p>
             )}
           </GlassCard>
         ))}

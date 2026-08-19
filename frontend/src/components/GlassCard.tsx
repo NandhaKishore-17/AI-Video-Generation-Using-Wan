@@ -9,11 +9,9 @@ interface GlassCardProps {
 
 export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', glow = false, onClick }) => {
   return (
-    <div
+    <div 
+      className={`glass-panel p-6 ${className} ${onClick ? 'transition-transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer' : ''} ${glow ? 'glass-panel-glow' : ''}`}
       onClick={onClick}
-      className={`rounded-2xl p-6 transition-all duration-300 ${
-        glow ? 'glass-panel-glow' : 'glass-panel hover:border-slate-700/80'
-      } ${className}`}
     >
       {children}
     </div>

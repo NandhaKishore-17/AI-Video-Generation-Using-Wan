@@ -34,8 +34,8 @@ async def lifespan(app: FastAPI):
         db.close()
 
     try:
-        engine = await get_video_engine()
-        logger.info("Video engine initialized: %s", type(engine).__name__)
+        video_eng = await get_video_engine()
+        logger.info("Video engine initialized: %s", type(video_eng).__name__)
     except Exception as exc:
         logger.warning("Video engine initialization skipped: %s", exc)
     
@@ -100,4 +100,4 @@ else:
         }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, access_log=False)
