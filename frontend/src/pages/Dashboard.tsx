@@ -4,7 +4,7 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { EpisodeModal } from '../components/EpisodeModal';
 import { api } from '../services/api';
 import { Universe, Episode, AnalyticsData } from '../types';
-import { Film, Zap, Play, CheckCircle2, Cpu, Activity, Clock, RefreshCw, FileText, Eye, BookOpen } from 'lucide-react';
+import { Film, Zap, Play, CheckCircle2, Cpu, Activity, Clock, RefreshCw, FileText, Eye, BookOpen, ChevronDown, Globe, Brain } from 'lucide-react';
 import { KnowledgeDocument } from '../types';
 
 interface DashboardProps {
@@ -57,92 +57,107 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
 
   const handleGenerateWithRAG = async () => {
     if (!activeUniverseId) return;
-    
-    onGenerateClick(); // Keep parent tracking if needed, wait actually the parent does the generation...
-    // Let's modify the parent's handler or just do it here. 
-    // It's cleaner to dispatch the generation here.
+    onGenerateClick();
   };
 
   const activeUniverse = universes.find(u => u.id === activeUniverseId) || universes[0];
   const latestEpisode = episodes[0];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 pb-12">
       {/* Modal Inspector */}
       {selectedEpForModal && (
         <EpisodeModal episode={selectedEpForModal} onClose={() => setSelectedEpForModal(null)} />
       )}
 
       {/* Hero Banner / Active Universe Card */}
-      <div className="relative rounded-3xl overflow-hidden p-8 bg-gradient-to-r from-slate-900 via-purple-950 to-cyan-950 border border-slate-700/60 shadow-glow-cyan">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-800 text-cyan-400 text-xs font-mono">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+      <div className="relative rounded-3xl overflow-hidden p-10 bg-secondary border border-neutral-border shadow-subtle min-h-[400px]">
+        {/* Background blend */}
+        <div 
+          className="absolute inset-0 right-0 left-1/3 opacity-30 mix-blend-multiply pointer-events-none"
+          style={{ 
+            backgroundImage: 'none',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center right',
+            maskImage: 'linear-gradient(to right, transparent, black 40%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 40%)'
+          }}
+        />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-12">
+          <div className="space-y-5 max-w-2xl pt-2">
+            <div className="inline-flex items-center space-x-2 text-[10px] font-bold tracking-widest text-accent-dark uppercase">
+              <span className="w-2 h-2 rounded-full bg-accent-primary" />
               <span>AUTONOMOUS PERSISTENT STORY UNIVERSE ACTIVE</span>
             </div>
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
-              {activeUniverse?.title || 'Neo-Tokyo 2099'}
+            
+            <h1 className="text-5xl lg:text-6xl font-serif font-bold text-text-primary tracking-tight">
+              {activeUniverse?.title || 'Mistborn'}
             </h1>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              {activeUniverse?.logline || 'In a rain-drenched megacity governed by rogue AI networks, a hacker and a detective battle corporate overlords.'}
+            
+            <p className="text-lg text-text-primary font-medium leading-relaxed">
+              {activeUniverse?.logline || 'Hero escaped from prison to fight the emperor'}
             </p>
+            
             {latestEpisode?.summary && (
-              <p className="text-xs text-slate-400 mt-3 border-l-2 border-cyan-500 pl-3">
-                Latest episode summary: {latestEpisode.summary}
-              </p>
+              <div className="flex">
+                <div className="w-1 bg-neutral-border rounded-full mr-4" />
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Latest episode summary: {latestEpisode.summary}
+                </p>
+              </div>
             )}
 
-            <div className="flex flex-wrap gap-4 pt-2 text-xs font-mono">
-              <div className="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
-                <span className="text-slate-500">Genre:</span> {activeUniverse?.genre || 'Cyberpunk Noir'}
+            <div className="flex flex-wrap gap-3 pt-4 text-xs font-medium">
+              <div className="bg-card px-4 py-1.5 rounded-full border border-neutral-border text-text-primary">
+                <span className="text-text-secondary mr-1">Genre:</span> {activeUniverse?.genre || 'Fantasy'}
               </div>
-              <div className="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
-                <span className="text-slate-500">Episodes Generated:</span> {activeUniverse?.total_episodes || 5}
+              <div className="bg-card px-4 py-1.5 rounded-full border border-neutral-border text-text-primary">
+                <span className="text-text-secondary mr-1">Episodes Generated:</span> {activeUniverse?.total_episodes || 1}
               </div>
-              <div className="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
-                <span className="text-slate-500">Season:</span> {activeUniverse?.current_season || 1}
+              <div className="bg-card px-4 py-1.5 rounded-full border border-neutral-border text-text-primary">
+                <span className="text-text-secondary mr-1">Season:</span> {activeUniverse?.current_season || 1}
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-5 min-w-[340px] bg-card p-6 rounded-2xl border border-neutral-border shadow-card">
+            <div className="flex flex-col gap-3">
               <button
                 onClick={() => {
                   const btn = document.getElementById('dash-gen-btn');
                   if (btn) btn.click();
                 }}
                 disabled={isGenerating}
-                className="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white shadow-glow-cyan hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
+                className="w-full px-6 py-4 rounded-xl font-bold text-[13px] bg-accent-primary text-white shadow-sm hover:bg-accent-dark transition-colors flex items-center justify-center space-x-2 tracking-wide uppercase"
               >
-                <Zap className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                <span>{isGenerating ? 'GENERATING EPISODE...' : 'GENERATE NEXT EPISODE'}</span>
+                <Zap className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} fill="currentColor" />
+                <span>{isGenerating ? 'GENERATING...' : 'GENERATE NEXT EPISODE'}</span>
               </button>
   
               <button
                 onClick={() => onNavigatePage('episodes')}
-                className="px-5 py-3.5 rounded-xl font-semibold text-sm bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 flex items-center justify-center space-x-2"
+                className="w-full px-6 py-4 rounded-xl font-bold text-[13px] bg-white hover:bg-neutral-soft text-text-primary border border-neutral-border transition-colors flex items-center justify-center space-x-2 tracking-wide uppercase"
               >
-                <Film className="w-4 h-4 text-cyan-400" />
+                <Film className="w-4 h-4 text-text-secondary" />
                 <span>EXPLORE EPISODES</span>
               </button>
             </div>
             
             {/* Reference Knowledge Options */}
-            <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 space-y-3">
+            <div className="pt-4 border-t border-neutral-border space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <BookOpen className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-semibold text-slate-200">Use reference knowledge:</span>
+                  <BookOpen className="w-4 h-4 text-text-secondary" />
+                  <span className="text-sm font-semibold text-text-primary">Use reference knowledge:</span>
                 </div>
-                <div className="flex bg-slate-800 rounded-lg p-1 text-xs font-bold">
+                <div className="flex bg-neutral-soft rounded-full p-1 text-[11px] font-bold border border-neutral-border">
                   <button 
                     onClick={() => {
                         setUseReference(true);
                         localStorage.setItem('rag_reference_enabled', 'true');
                     }}
-                    className={`px-3 py-1 rounded-md transition-colors ${useReference ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`px-4 py-1.5 rounded-full transition-colors ${useReference ? 'bg-accent-primary text-white' : 'text-text-secondary hover:text-text-primary'}`}
                   >
                     ON
                   </button>
@@ -151,7 +166,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
                         setUseReference(false);
                         localStorage.setItem('rag_reference_enabled', 'false');
                     }}
-                    className={`px-3 py-1 rounded-md transition-colors ${!useReference ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`px-4 py-1.5 rounded-full transition-colors ${!useReference ? 'bg-white text-text-primary shadow-sm border border-neutral-border' : 'text-text-secondary hover:text-text-primary'}`}
                   >
                     OFF
                   </button>
@@ -159,30 +174,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
               </div>
               
               {useReference && (
-                <div className="space-y-3 pt-2 border-t border-slate-700/50">
-                  <div className="flex flex-col space-y-1 text-sm">
-                    <label className="text-slate-400 text-xs font-bold">Reference Document:</label>
-                    <select 
-                      value={selectedReference}
-                      onChange={(e) => {
-                          setSelectedReference(e.target.value);
-                          localStorage.setItem('rag_reference_id', e.target.value);
-                      }}
-                      className="bg-slate-950 text-emerald-300 font-semibold px-3 py-2 rounded-xl border border-slate-700 focus:border-emerald-500 focus:outline-none"
-                    >
-                      {knowledgeList.length === 0 ? (
-                        <option value="">No reference uploaded (Upload in Knowledge Library)</option>
-                      ) : (
-                        knowledgeList.map(k => (
-                          <option key={k.id} value={k.id}>✓ {k.name}</option>
-                        ))
-                      )}
-                    </select>
+                <div className="space-y-4">
+                  <div className="flex flex-col space-y-2">
+                    <label className="text-text-secondary text-xs font-medium">Reference Document:</label>
+                    <div className="relative">
+                      <select 
+                        value={selectedReference}
+                        onChange={(e) => {
+                            setSelectedReference(e.target.value);
+                            localStorage.setItem('rag_reference_id', e.target.value);
+                        }}
+                        className="w-full appearance-none bg-white text-text-primary font-medium text-sm px-4 py-2.5 rounded-xl border border-neutral-border focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
+                      >
+                        {knowledgeList.length === 0 ? (
+                          <option value="">No reference uploaded</option>
+                        ) : (
+                          knowledgeList.map(k => (
+                            <option key={k.id} value={k.id}>{k.name}</option>
+                          ))
+                        )}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col space-y-1 text-sm">
-                    <label className="text-slate-400 text-xs font-bold">Influence:</label>
-                    <div className="flex items-center space-x-2 text-xs font-bold">
+                  <div className="flex flex-col space-y-2">
+                    <label className="text-text-secondary text-xs font-medium">Influence:</label>
+                    <div className="flex items-center space-x-2 text-[11px] font-semibold">
                       {['Low', 'Medium', 'High'].map(level => (
                         <button
                           key={level}
@@ -190,10 +208,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
                               setReferenceInfluence(level);
                               localStorage.setItem('rag_reference_influence', level);
                           }}
-                          className={`flex-1 py-1.5 rounded-lg border transition-colors ${
+                          className={`flex-1 py-2 rounded-lg border transition-colors ${
                             referenceInfluence === level 
-                            ? 'bg-emerald-900/60 border-emerald-500 text-emerald-400' 
-                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                            ? 'bg-accent-primary border-accent-primary text-white' 
+                            : 'bg-white border-neutral-border text-text-secondary hover:bg-neutral-soft'
                           }`}
                         >
                           {referenceInfluence === level ? '●' : '○'} {level}
@@ -205,7 +223,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
               )}
             </div>
             
-            {/* Hidden button for triggering generation from App.tsx via DOM hack or we just pass the values up */}
+            {/* Hidden button for triggering generation */}
             <button
               id="dash-gen-btn"
               className="hidden"
@@ -218,114 +236,135 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigatePage, onGenerate
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <GlassCard>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <GlassCard className="p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-400 font-mono">TOTAL UNIVERSES</p>
-              <h3 className="text-2xl font-extrabold text-white mt-1">{analytics?.total_universes || 2}</h3>
-            </div>
-            <div className="p-3 rounded-xl bg-cyan-950/60 text-cyan-400 border border-cyan-800">
-              <Film className="w-6 h-6" />
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-full bg-accent-light flex items-center justify-center text-accent-dark">
+                <Globe className="w-5 h-5" strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] text-text-secondary font-bold tracking-widest uppercase">TOTAL UNIVERSES</p>
+                <h3 className="text-3xl font-serif font-bold text-text-primary mt-1">{analytics?.total_universes || 1}</h3>
+              </div>
             </div>
           </div>
         </GlassCard>
 
-        <GlassCard>
+        <GlassCard className="p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-400 font-mono">EPISODES RENDERED</p>
-              <h3 className="text-2xl font-extrabold text-purple-400 mt-1">{analytics?.total_episodes || 7}</h3>
-            </div>
-            <div className="p-3 rounded-xl bg-purple-950/60 text-purple-400 border border-purple-800">
-              <CheckCircle2 className="w-6 h-6" />
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-full bg-neutral-soft flex items-center justify-center text-text-secondary">
+                <Film className="w-5 h-5" strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] text-text-secondary font-bold tracking-widest uppercase">EPISODES RENDERED</p>
+                <h3 className="text-3xl font-serif font-bold text-text-primary mt-1">{analytics?.total_episodes || 1}</h3>
+              </div>
             </div>
           </div>
         </GlassCard>
 
-        <GlassCard>
+        <GlassCard className="p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-400 font-mono">STORY MEMORY ENTRIES</p>
-              <h3 className="text-2xl font-extrabold text-pink-400 mt-1">{analytics?.system_status.qdrant_indexed_vectors || 128}</h3>
-            </div>
-            <div className="p-3 rounded-xl bg-pink-950/60 text-pink-400 border border-pink-800">
-              <Activity className="w-6 h-6" />
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-full bg-accent-light flex items-center justify-center text-accent-dark">
+                <Brain className="w-5 h-5" strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] text-text-secondary font-bold tracking-widest uppercase">STORY MEMORY ENTRIES</p>
+                <h3 className="text-3xl font-serif font-bold text-text-primary mt-1">{analytics?.system_status.qdrant_indexed_vectors || 128}</h3>
+              </div>
             </div>
           </div>
         </GlassCard>
 
-        <GlassCard>
+        <GlassCard className="p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-400 font-mono">VRAM ALLOCATION</p>
-              <h3 className="text-2xl font-extrabold text-emerald-400 mt-1">{analytics?.system_status.gpu_vram_allocated_gb || '8.4 GB'}</h3>
-            </div>
-            <div className="p-3 rounded-xl bg-emerald-950/60 text-emerald-400 border border-emerald-800">
-              <Cpu className="w-6 h-6" />
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-full bg-neutral-soft flex items-center justify-center text-text-secondary">
+                <Cpu className="w-5 h-5" strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] text-text-secondary font-bold tracking-widest uppercase">VRAM ALLOCATION</p>
+                <h3 className="text-3xl font-serif font-bold text-text-primary mt-1">{analytics?.system_status.gpu_vram_allocated_gb || '8.4 / 16.0 GB'}</h3>
+              </div>
             </div>
           </div>
         </GlassCard>
       </div>
 
       {/* Main Grid: Video Player + Recent Episodes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-lg font-bold text-white flex items-center justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="lg:col-span-2 space-y-5">
+          <h2 className="text-sm font-bold text-text-secondary tracking-widest uppercase flex items-center justify-between">
             <span>LATEST RENDERED EPISODE</span>
-            <button onClick={loadData} className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white border border-slate-800">
+            <button onClick={loadData} className="text-text-secondary hover:text-accent-primary transition-colors">
               <RefreshCw className="w-4 h-4" />
             </button>
           </h2>
-          <VideoPlayer
-            videoUrl={latestEpisode?.final_video_url}
-            posterUrl={latestEpisode?.thumbnail_url}
-            title={latestEpisode?.title || 'Episode 1: Signals in the Rain'}
-            subtitles="SRT Subtitles Burnt-in"
-            scenes={latestEpisode?.scenes}
-          />
+          
+          <div className="rounded-2xl overflow-hidden shadow-card border border-neutral-border bg-card">
+            {latestEpisode ? (
+              <VideoPlayer
+                videoUrl={latestEpisode.final_video_url}
+                posterUrl={latestEpisode.thumbnail_url}
+                title={latestEpisode.title || 'Episode 1: Signals in the Rain'}
+                subtitles="SRT Subtitles Burnt-in"
+                scenes={latestEpisode.scenes}
+              />
+            ) : (
+              <div className="aspect-video bg-neutral-soft flex items-center justify-center">
+                <div className="text-center text-text-secondary">
+                  <Film className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                  <p className="font-medium">No episodes generated yet</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Recent Episode Feed with Watch Video & Read Script Actions */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-white">EPISODES FEED</h2>
-          <div className="space-y-3">
+        <div className="space-y-5">
+          <h2 className="text-sm font-bold text-text-secondary tracking-widest uppercase">EPISODES FEED</h2>
+          <div className="space-y-4">
             {episodes.map((ep) => (
               <GlassCard
                 key={ep.id}
-                className="hover:border-cyan-500/50 cursor-pointer space-y-3"
-                glow={ep.id === latestEpisode?.id}
+                className={`hover:border-accent-primary cursor-pointer space-y-4 transition-all duration-200 ${ep.id === latestEpisode?.id ? 'border-accent-primary/50 bg-secondary/30' : ''}`}
                 onClick={() => setSelectedEpForModal(ep)}
               >
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-purple-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-xl bg-accent-primary flex items-center justify-center font-bold text-white text-sm shrink-0">
                     E{ep.episode_number}
                   </div>
-                  <div className="space-y-1 flex-1">
-                    <h4 className="font-bold text-sm text-white hover:text-cyan-400 transition-colors">{ep.title}</h4>
-                    <p className="text-xs text-slate-400 line-clamp-2">{ep.logline}</p>
+                  <div className="space-y-1.5 flex-1 pt-0.5">
+                    <h4 className="font-serif font-bold text-base text-text-primary hover:text-accent-primary transition-colors">{ep.title}</h4>
+                    <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">{ep.logline}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs font-mono">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedEpForModal(ep);
-                    }}
-                    className="flex items-center space-x-1 text-cyan-400 hover:text-cyan-300"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>WATCH & READ SCRIPT</span>
-                  </button>
-
-                  <span className="text-[10px] text-purple-400">{ep.duration_seconds || 18.0}s</span>
+                <div className="flex items-center justify-between pt-3 border-t border-neutral-border/60 text-xs font-medium text-text-secondary">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{new Date(ep.created_at || Date.now()).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <span className="bg-neutral-soft px-2 py-1 rounded-md">{ep.duration_seconds || 30.0}s</span>
                 </div>
               </GlassCard>
             ))}
+            
+            {episodes.length === 0 && (
+              <div className="text-center py-12 text-text-secondary border border-dashed border-neutral-border rounded-2xl">
+                <p className="font-medium">No episodes found.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+

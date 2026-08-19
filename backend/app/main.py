@@ -1,6 +1,14 @@
 import uvicorn
 import logging
 import os
+import sys
+
+# Workaround for torchcodec FFmpeg DLL loading on Windows (Python 3.8+)
+if sys.platform == "win32":
+    try:
+        os.add_dll_directory(r"C:\Users\Nandha kishore\AppData\Local\Microsoft\WinGet\Packages\BtbN.FFmpeg.LGPL.Shared.8.0_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-n8.0.1-66-g27b8d1a017-win64-lgpl-shared-8.0\bin")
+    except Exception:
+        pass
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
@@ -44,6 +52,13 @@ async def on_startup():
     # Start background job worker
     import asyncio
     asyncio.create_task(job_manager.start_worker())
+    # Initialize local WAN video engine
+    from app.engines.video.wan_video_engine import initialize_video_engine
+    try:
+        video_eng = await initialize_video_engine()
+        logging.getLogger("main").info("Video engine initialized: %s", type(video_eng).__name__)
+    except Exception as exc:
+        logging.getLogger("main").warning("Video engine initialization skipped: %s", exc)
 
 from pydantic import BaseModel
 from services.tts.tts_service import tts_service

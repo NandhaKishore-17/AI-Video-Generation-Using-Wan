@@ -57,6 +57,10 @@ class OllamaClient:
             "model": self.model,
             "prompt": prompt,
             "stream": True,
+            "options": {
+                "num_ctx": 16384,
+                "num_predict": -1
+            }
         }
         if system:
             payload["system"] = system
@@ -64,6 +68,9 @@ class OllamaClient:
             payload["format"] = format
 
         timeout_val = self.timeout or getattr(settings, "OLLAMA_TIMEOUT", 600)
+        # For stream=True, requests timeout=(connect_timeout, read_timeout)
+        # We enforce a high read timeout (1800s) to prevent generation cutoffs for large contexts
+        req_timeout = (30.0, max(1800.0, float(timeout_val)))
         last_error: Optional[Exception] = None
 
         for attempt in range(1, _MAX_RETRIES + 1):
@@ -76,7 +83,7 @@ class OllamaClient:
             logger.info("Ollama request started at: %s (attempt %d/%d, model=%s)", start_str, attempt, _MAX_RETRIES, self.model)
 
             try:
-                with requests.post(url, json=payload, stream=True, timeout=timeout_val) as resp:
+                with requests.post(url, json=payload, stream=True, timeout=req_timeout) as resp:
                     resp.raise_for_status()
                     for line in resp.iter_lines(decode_unicode=True):
                         if not line:

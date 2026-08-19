@@ -49,7 +49,7 @@ class EpisodeGeneratorModule:
         universe_id: str,
         brief: Dict[str, Any],
         custom_prompt: str = "",
-        scene_duration_seconds: float = 8.5
+        episode_duration_seconds: float = 30.0
     ) -> None:
         # Phase 1: Setup
         db = SessionLocal()
@@ -206,7 +206,10 @@ class EpisodeGeneratorModule:
                 finally:
                     db.close()
 
-                target_duration = float(scene_duration_seconds) if scene_duration_seconds else float(scene_info.get("duration_seconds", 8.0))
+                # Compute per-scene duration from total episode duration
+                num_scenes = max(len(scenes_data), 1)
+                scene_duration_seconds = episode_duration_seconds / num_scenes
+                target_duration = float(scene_duration_seconds)
 
                 # Dialogue Gen (NO active db session)
                 logger.info(f"[DIALOGUE] Generating dialogue for scene {idx}...")

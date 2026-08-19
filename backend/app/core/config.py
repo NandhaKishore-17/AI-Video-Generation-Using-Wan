@@ -28,12 +28,12 @@ class Settings(BaseSettings):
     # Open Source AI Model Endpoints (Supports local Ollama, vLLM, ComfyUI, diffusers, EdgeTTS, Piper)
     LLM_PROVIDER: str = "ollama"  # ollama, qwen, openai-compatible, mock
     LLM_API_BASE: str = "http://localhost:11434"
-    LLM_MODEL: str = "llama3.2:3b"
+    LLM_MODEL: str = "gemma3:4b"
 
     # Ollama settings
     OLLAMA_URL: str = "http://localhost:11434"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama3.2:3b"
+    OLLAMA_MODEL: str = "gemma3:4b"
     OLLAMA_TIMEOUT: int = 600  # seconds per request
     
     IMAGE_PROVIDER: str = "flux"  # flux, sdxl, diffusers, mock
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     MUSIC_PROVIDER: str = "musicgen"  # musicgen, audiocraft, mock
     
     # GPU & Cloud Strategy
-    GPU_EXECUTION_MODE: str = "LOCAL_GPU"  # LOCAL_GPU, CLOUD_GPU, HYBRID
+    GPU_EXECUTION_MODE: str = "LOCAL_GPU"  # LOCAL_GPU, HYBRID
     CUDA_DEVICE: str = "cuda:0"
     
     # Local Wan 2.2 TI2V-5B Model Settings
@@ -71,17 +71,6 @@ class Settings(BaseSettings):
     OUTPUT_DIR: str = str(OUTPUT_DIR)
     MEDIA_OUTPUT_DIR: str = str(OUTPUT_DIR)
     TEMP_DIR: str = str(TEMP_DIR)
-    
-    # Remote Wan2.2 Video Generation API (Runpod Serverless)
-    RUNPOD_API_KEY: Optional[str] = None
-    RUNPOD_WAN_ENDPOINT_URL: Optional[str] = None
-    WAN_MODEL: str = "Wan2.2-TI2V-5B"
-    WAN_TIMEOUT: int = 900
-    WAN_POLL_INTERVAL: int = 5
-    WAN_DEFAULT_FPS: int = 24
-    WAN_DEFAULT_DURATION: int = 5
-    WAN_DEFAULT_WIDTH: int = 1280
-    WAN_DEFAULT_HEIGHT: int = 704
 
     model_config = SettingsConfigDict(
         env_file=[
@@ -94,7 +83,7 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
-print("RUNPOD API CONFIGURED:", bool(settings.RUNPOD_WAN_ENDPOINT_URL and settings.RUNPOD_API_KEY))
 
 os.makedirs(settings.MEDIA_OUTPUT_DIR, exist_ok=True)
 os.makedirs(settings.TEMP_DIR, exist_ok=True)
+

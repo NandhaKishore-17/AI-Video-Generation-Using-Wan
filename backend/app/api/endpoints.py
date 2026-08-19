@@ -362,13 +362,15 @@ async def generate_episode(payload: EpisodeGenerateRequest, background_tasks: Ba
     db.commit()
 
     # Launch background task
+    # Prefer episode_duration_seconds; fall back to scene_duration_seconds for backward compat
+    ep_duration = payload.episode_duration_seconds or (payload.scene_duration_seconds * 3 if payload.scene_duration_seconds else 30.0)
     background_tasks.add_task(
         episode_generator.generate_episode_pipeline,
         episode.id,
         payload.universe_id,
         brief,
         payload.custom_prompt or "",
-        payload.scene_duration_seconds or 8.0
+        ep_duration
     )
     return episode
 
@@ -400,30 +402,29 @@ def get_episode_detail(episode_id: str, db: Session = Depends(get_db)):
     
     from app.core.config import BASE_DIR
     
-    print("PLAYBACK REQUEST")
-    print(f"episode_id={episode_id}")
-    print("PLAYBACK SCENES")
-    print(f"scene_ids={[s.id for s in scenes]}")
-    
     import logging
     logger = logging.getLogger("playback")
-    logger.info(f"[PLAYBACK] Loading episode {episode_id} with {len(scenes)} scenes.")
+    logger.debug(f"[PLAYBACK] Loading episode {episode_id} with {len(scenes)} scenes.")
     
     # Verify media paths exist before returning URLs to prevent 404s
     media_root_dir = Path(BASE_DIR) / "media"
     for s in scenes:
         if s.image_url and not (media_root_dir / s.image_url.lstrip("/").replace("media/", "", 1)).exists():
-            logger.warning(f"[PLAYBACK] Missing image for scene {s.id}: {s.image_url}")
+            if episode.status == "COMPLETED":
+                logger.warning(f"[PLAYBACK] Missing image for scene {s.id}: {s.image_url}")
             s.image_url = None
         if s.video_url and not (media_root_dir / s.video_url.lstrip("/").replace("media/", "", 1)).exists():
-            logger.warning(f"[PLAYBACK] Missing video for scene {s.id}: {s.video_url}")
+            if episode.status == "COMPLETED":
+                logger.warning(f"[PLAYBACK] Missing video for scene {s.id}: {s.video_url}")
             s.video_url = None
         if s.audio_url and not (media_root_dir / s.audio_url.lstrip("/").replace("media/", "", 1)).exists():
-            logger.warning(f"[PLAYBACK] Missing audio for scene {s.id}: {s.audio_url}")
+            if episode.status == "COMPLETED":
+                logger.warning(f"[PLAYBACK] Missing audio for scene {s.id}: {s.audio_url}")
             s.audio_url = None
 
     if episode.final_video_url and not (media_root_dir / episode.final_video_url.lstrip("/").replace("media/", "", 1)).exists():
-         logger.warning(f"[PLAYBACK] Missing final video for episode {episode_id}: {episode.final_video_url}")
+         if episode.status == "COMPLETED":
+             logger.warning(f"[PLAYBACK] Missing final video for episode {episode_id}: {episode.final_video_url}")
          episode.final_video_url = None
 
     resp = EpisodeDetailResponse.model_validate(episode)
@@ -594,7 +595,8 @@ async def start_scheduler(payload: SchedulerStartRequest):
     """
     await scheduler_module.start(
         interval_minutes=payload.interval_minutes or 60,
-        auto_publish=payload.auto_publish if payload.auto_publish is not None else True
+        auto_publish=payload.auto_publish if payload.auto_publish is not None else True,
+        mode=payload.mode or "interval"
     )
     status = await scheduler_module.get_status()
     return status
@@ -660,9 +662,9 @@ def get_analytics(db: Session = Depends(get_db)):
         "total_characters": total_characters,
         "completed_renders": completed_renders,
         "engine_benchmarks": {
-            "qwen_llm_avg_sec": 1.2,
+            "gemma_llm_avg_sec": 1.2,
             "flux_image_avg_sec": 3.4,
-            "cogvideox_video_avg_sec": 5.1,
+            "wan_video_avg_sec": 5.1,
             "piper_voice_avg_sec": 0.8,
             "ffmpeg_stitch_avg_sec": 1.5
         },

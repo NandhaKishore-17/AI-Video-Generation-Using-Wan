@@ -10,7 +10,7 @@ from app.schemas.schemas import UniverseGeneratedData, ScreenplayData
 
 logger = logging.getLogger("llm_engine")
 
-class QwenLLMEngine:
+class LLMEngine:
     """
     LLM Engine powered by local Ollama server.
     Includes prompt structuring for Universe Bible creation and Screenplay writing.
@@ -107,11 +107,12 @@ class QwenLLMEngine:
           "historical_milestones": ["Milestone 1", "Milestone 2"],
           "suggested_characters": [
             {
-              "name": "Character Name",
-              "role": "Role in story",
-              "personality": "Personality traits",
-              "appearance_prompt": "Cinematic photo description",
-              "bio": "Character background",
+              "name": "A unique, creative character name — NOT generic like 'Character 1' or 'Hero'",
+              "role": "Role in story (e.g. Protagonist, Antagonist, Mentor, Trickster)",
+              "personality": "Detailed personality traits, quirks, and emotional tendencies",
+              "appearance_prompt": "Cinematic photo description with specific physical features, clothing, distinguishing marks",
+              "bio": "Unique backstory, motivations, secrets, and personal history",
+              "gender": "male or female",
               "voice_actor_preset": "Piper-Male-Cinematic-1"
             }
           ],
@@ -123,6 +124,14 @@ class QwenLLMEngine:
             }
           ]
         }
+
+        IMPORTANT CHARACTER REQUIREMENTS:
+        - Each character MUST have a unique, creative, original name. Do NOT use generic names like Character 1, Character 2, Hero, Villain, Main Character, Protagonist, or Unnamed.
+        - Each character MUST have a distinct personality, unique backstory, and clear motivation.
+        - Characters must have diverse roles, genders, and personality types.
+        - Each character's appearance_prompt MUST be specific and visually distinctive.
+        - Include the "gender" field ("male" or "female") for each character.
+        - Generate at least 3 and at most 6 characters.
         """
 
         data = await self._generate_with_retry(system_prompt, prompt, schema_class=UniverseGeneratedData)
@@ -364,4 +373,4 @@ VALIDATION RULES:
         except json.JSONDecodeError as exc:
             raise ValueError(f"Failed to parse JSON from Ollama response:\n{raw}\nError: {exc}") from exc
 
-llm_engine = QwenLLMEngine()
+llm_engine = LLMEngine()

@@ -99,6 +99,7 @@ export interface SchedulerStatus {
   last_run?: string;
   next_run?: string;
   auto_publish: boolean;
+  mode?: string;
 }
 
 export interface MemoryQueryResult {
@@ -116,9 +117,9 @@ export interface AnalyticsData {
   total_characters: number;
   completed_renders: number;
   engine_benchmarks: {
-    qwen_llm_avg_sec: number;
+    gemma_llm_avg_sec: number;
     flux_image_avg_sec: number;
-    cogvideox_video_avg_sec: number;
+    wan_video_avg_sec: number;
     piper_voice_avg_sec: number;
     ffmpeg_stitch_avg_sec: number;
   };

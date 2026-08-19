@@ -271,6 +271,89 @@ class VoiceManager:
         logger.info(f"Assigned voice '{voice_config['name']}' ({selected_archetype}) to character '{clean_name}'")
         return assignment
 
+    def assign_voice_from_character_data(self, character_name: str, char_data: Dict[str, Any], language: str = "en") -> Dict[str, Any]:
+        """
+        Intelligently assigns a voice based on character metadata like gender, role, and personality.
+        """
+        clean_name = character_name.strip().upper()
+        if not clean_name:
+            clean_name = "NARRATOR"
+
+        # Check if already assigned
+        if clean_name in self.character_mappings:
+            return self.character_mappings[clean_name]
+
+        lang_library = self.voice_library.get(language, self.voice_library["en"])
+
+        # Determine gender
+        explicit_gender = char_data.get("gender", "").lower()
+        if explicit_gender in ["male", "female"]:
+            gender = explicit_gender
+        else:
+            gender = self.infer_gender_from_name(clean_name)
+
+        gender_voices = lang_library.get(gender, lang_library["male"])
+
+        # Intelligently select archetype based on role and personality
+        role = str(char_data.get("role", "")).lower()
+        personality = str(char_data.get("personality", "")).lower()
+        bio = str(char_data.get("bio", "")).lower()
+        combined_text = f"{role} {personality} {bio}"
+
+        preferred_archetype = None
+        
+        # Simple heuristic mapping for archetypes
+        if "villain" in combined_text or "antagonist" in combined_text or "evil" in combined_text:
+            preferred_archetype = "deep_villain_male" if gender == "male" else "strong_female"
+        elif "old" in combined_text or "wise" in combined_text or "mentor" in combined_text:
+            preferred_archetype = "deep_male" if gender == "male" else "calm_female"
+        elif "young" in combined_text or "child" in combined_text or "energetic" in combined_text:
+            preferred_archetype = "young_male" if gender == "male" else "young_female"
+        elif "calm" in combined_text or "professional" in combined_text or "stoic" in combined_text:
+            preferred_archetype = "calm_male" if gender == "male" else "calm_female"
+        elif "strong" in combined_text or "warrior" in combined_text or "brave" in combined_text:
+            preferred_archetype = "energetic_male" if gender == "male" else "strong_female"
+
+        # If preferred archetype is valid and exists, try to use it
+        available_archetypes = list(gender_voices.keys())
+        
+        used_archetypes = {
+            v["archetype"]
+            for v in self.character_mappings.values()
+            if v.get("gender") == gender and v.get("language") == language
+        }
+        
+        unused_archetypes = [a for a in available_archetypes if a not in used_archetypes]
+
+        if preferred_archetype and preferred_archetype in available_archetypes:
+            # Prefer unused instances of the archetype if possible, but it's more important to match the character traits
+            selected_archetype = preferred_archetype
+        else:
+            if not unused_archetypes:
+                unused_archetypes = available_archetypes
+
+            # Deterministic selection
+            name_hash = int(hashlib.md5(clean_name.encode("utf-8")).hexdigest(), 16)
+            selected_archetype = unused_archetypes[name_hash % len(unused_archetypes)]
+
+        voice_config = gender_voices[selected_archetype]
+        assignment = {
+            "character": clean_name,
+            "language": language,
+            "gender": gender,
+            "archetype": selected_archetype,
+            "voice_id": voice_config["id"],
+            "pitch": voice_config["pitch"],
+            "rate": voice_config["rate"],
+            "name": voice_config["name"],
+            "description": voice_config["description"]
+        }
+
+        self.character_mappings[clean_name] = assignment
+        self._save_mappings()
+        logger.info(f"Intelligently assigned voice '{voice_config['name']}' ({selected_archetype}) to character '{clean_name}' based on traits")
+        return assignment
+
     def add_custom_language_voices(self, language: str, gender: str, archetype: str, voice_config: Dict[str, Any]):
         """Modular extension allowing registration of voices for additional languages."""
         if language not in self.voice_library:

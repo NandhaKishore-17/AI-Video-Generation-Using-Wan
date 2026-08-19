@@ -4,6 +4,12 @@ from typing import Any
 from app.models.domain import Universe, Character, TimelineEvent, StoryArc
 from app.engines.llm_engine import llm_engine
 from app.services.knowledge_service import knowledge_service
+import os
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+from services.tts.voice_manager import voice_manager
 
 logger = logging.getLogger("universe_engine")
 
@@ -98,13 +104,19 @@ class UniverseEngineModule:
             # 3. Create Characters
             suggested_chars = bible_data.get("suggested_characters", [])
             for char_info in suggested_chars:
+                # Intelligently assign a voice based on character metadata
+                voice_assignment = voice_manager.assign_voice_from_character_data(
+                    character_name=char_info.get("name", "Unknown Hero"),
+                    char_data=char_info
+                )
+                
                 character = Character(
                     universe_id=universe.id,
                     name=char_info.get("name", "Unknown Hero"),
                     role=char_info.get("role", "Protagonist"),
                     personality=char_info.get("personality", "Brave and resilient"),
                     appearance_prompt=char_info.get("appearance_prompt", f"Cinematic photo of {char_info.get('name')}, highly detailed 8k"),
-                    voice_actor_preset=char_info.get("voice_actor_preset", "Piper-Male-Cinematic-1"),
+                    voice_actor_preset=voice_assignment.get("voice_id", char_info.get("voice_actor_preset", "Piper-Male-Cinematic-1")),
                     bio=char_info.get("bio", "Hero of the universe")
                 )
                 db.add(character)

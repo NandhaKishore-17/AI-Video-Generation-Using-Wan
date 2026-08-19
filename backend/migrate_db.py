@@ -35,6 +35,20 @@ def migrate():
     else:
         print("Column 'summary' already exists in 'episodes' table. No migration needed.")
 
+    # Get existing columns in the scheduler_config table
+    try:
+        cursor.execute("PRAGMA table_info(scheduler_config);")
+        scheduler_columns = [col[1] for col in cursor.fetchall()]
+        
+        if "mode" not in scheduler_columns:
+            print("Column 'mode' is missing in 'scheduler_config' table. Adding it now...")
+            cursor.execute("ALTER TABLE scheduler_config ADD COLUMN mode VARCHAR(20) DEFAULT 'interval';")
+            conn.commit()
+            print("Successfully added 'mode' column.")
+    except Exception as e:
+        print(f"Error checking or adding column for scheduler_config: {e}")
+        conn.rollback()
+
     # Verify
     cursor.execute("SELECT * FROM episodes LIMIT 1;")
     conn.close()
