@@ -139,12 +139,21 @@ DEFAULT_VOICE_LIBRARY: Dict[str, Dict[str, Dict[str, Any]]] = {
 
 # Pre-seeded archetype overrides for prominent story characters
 PRESET_CHARACTER_ARCHETYPES: Dict[str, Dict[str, str]] = {
+    "KAELEN THORNE": {"gender": "male", "archetype": "deep_male"},
     "KAELEN VANCE": {"gender": "male", "archetype": "deep_male"},
     "KAELEN": {"gender": "male", "archetype": "deep_male"},
-    "NOVA THORNE": {"gender": "female", "archetype": "calm_female"},
-    "NOVA": {"gender": "female", "archetype": "calm_female"},
+    "SERAPHINA ‘SERA’ VOLKOV": {"gender": "female", "archetype": "calm_female"},
+    "SERAPHINA 'SERA' VOLKOV": {"gender": "female", "archetype": "calm_female"},
+    "SERAPHINA": {"gender": "female", "archetype": "calm_female"},
+    "SERA": {"gender": "female", "archetype": "calm_female"},
+    "SERA VOLKOV": {"gender": "female", "archetype": "calm_female"},
+    "COMMANDER SILAS VANE": {"gender": "male", "archetype": "deep_villain_male"},
+    "SILAS VANE": {"gender": "male", "archetype": "deep_villain_male"},
+    "COMMANDER VANE": {"gender": "male", "archetype": "deep_villain_male"},
     "DIRECTOR VANE": {"gender": "male", "archetype": "deep_villain_male"},
     "VANE": {"gender": "male", "archetype": "deep_villain_male"},
+    "NOVA THORNE": {"gender": "female", "archetype": "calm_female"},
+    "NOVA": {"gender": "female", "archetype": "calm_female"},
     "ARIA": {"gender": "female", "archetype": "young_female"},
     "ELENA": {"gender": "female", "archetype": "strong_female"},
     "MARK": {"gender": "male", "archetype": "young_male"},
@@ -188,7 +197,8 @@ class VoiceManager:
         name_upper = character_name.upper().strip()
         female_indicators = [
             "NOVA", "ARIA", "ELENA", "EVE", "SARAH", "AVA", "ZOE", "MAYA", "CHLOE",
-            "LADY", "QUEEN", "MADAM", "MRS", "MS", "MISS", "GIRL", "WOMAN", "FEMALE"
+            "LADY", "QUEEN", "MADAM", "MRS", "MS", "MISS", "GIRL", "WOMAN", "FEMALE",
+            "SERAPHINA", "SERA", "EIRA"
         ]
         if any(indicator in name_upper for indicator in female_indicators):
             return "female"
@@ -235,15 +245,15 @@ class VoiceManager:
         gender = self.infer_gender_from_name(clean_name)
         gender_voices = lang_library.get(gender, lang_library["male"])
 
-        # Find used archetypes for this gender
-        used_archetypes = {
-            v["archetype"]
-            for v in self.character_mappings.values()
-            if v.get("gender") == gender and v.get("language") == language
-        }
+        # Count used archetypes for this gender
+        used_counts = {}
+        for v in self.character_mappings.values():
+            if v.get("gender") == gender and v.get("language") == language:
+                arch = v["archetype"]
+                used_counts[arch] = used_counts.get(arch, 0) + 1
 
         # Filter available (unused) archetypes
-        available_archetypes = [a for a in gender_voices.keys() if a not in used_archetypes]
+        available_archetypes = [a for a in gender_voices.keys() if a not in used_counts]
 
         if not available_archetypes:
             # All voices used, fall back to all available archetypes for deterministic hash selection
@@ -254,14 +264,24 @@ class VoiceManager:
         selected_archetype = available_archetypes[name_hash % len(available_archetypes)]
 
         voice_config = gender_voices[selected_archetype]
+        
+        final_pitch = voice_config["pitch"]
+        final_rate = voice_config["rate"]
+        reuse_count = used_counts.get(selected_archetype, 0)
+        
+        if reuse_count > 0:
+            shift = (4 * ((reuse_count + 1) // 2)) * (1 if reuse_count % 2 == 1 else -1)
+            final_pitch = f"+{shift}Hz" if shift > 0 else f"{shift}Hz"
+            logger.info(f"Reusing archetype '{selected_archetype}' ({reuse_count} times). Applying shift: {final_pitch}")
+
         assignment = {
             "character": clean_name,
             "language": language,
             "gender": gender,
             "archetype": selected_archetype,
             "voice_id": voice_config["id"],
-            "pitch": voice_config["pitch"],
-            "rate": voice_config["rate"],
+            "pitch": final_pitch,
+            "rate": final_rate,
             "name": voice_config["name"],
             "description": voice_config["description"]
         }
@@ -317,13 +337,14 @@ class VoiceManager:
         # If preferred archetype is valid and exists, try to use it
         available_archetypes = list(gender_voices.keys())
         
-        used_archetypes = {
-            v["archetype"]
-            for v in self.character_mappings.values()
-            if v.get("gender") == gender and v.get("language") == language
-        }
+        used_counts = {}
+        for v in self.character_mappings.values():
+            if v.get("gender") == gender and v.get("language") == language:
+                arch = v["archetype"]
+                used_counts[arch] = used_counts.get(arch, 0) + 1
         
-        unused_archetypes = [a for a in available_archetypes if a not in used_archetypes]
+        available_archetypes = list(gender_voices.keys())
+        unused_archetypes = [a for a in available_archetypes if a not in used_counts]
 
         if preferred_archetype and preferred_archetype in available_archetypes:
             # Prefer unused instances of the archetype if possible, but it's more important to match the character traits
@@ -337,14 +358,24 @@ class VoiceManager:
             selected_archetype = unused_archetypes[name_hash % len(unused_archetypes)]
 
         voice_config = gender_voices[selected_archetype]
+        
+        final_pitch = voice_config["pitch"]
+        final_rate = voice_config["rate"]
+        reuse_count = used_counts.get(selected_archetype, 0)
+        
+        if reuse_count > 0:
+            shift = (4 * ((reuse_count + 1) // 2)) * (1 if reuse_count % 2 == 1 else -1)
+            final_pitch = f"+{shift}Hz" if shift > 0 else f"{shift}Hz"
+            logger.info(f"Reusing archetype '{selected_archetype}' ({reuse_count} times). Applying shift: {final_pitch}")
+
         assignment = {
             "character": clean_name,
             "language": language,
             "gender": gender,
             "archetype": selected_archetype,
             "voice_id": voice_config["id"],
-            "pitch": voice_config["pitch"],
-            "rate": voice_config["rate"],
+            "pitch": final_pitch,
+            "rate": final_rate,
             "name": voice_config["name"],
             "description": voice_config["description"]
         }

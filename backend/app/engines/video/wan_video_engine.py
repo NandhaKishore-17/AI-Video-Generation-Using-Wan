@@ -36,8 +36,8 @@ class WanVideoEngine(VideoEngine):
         return self.render_video(
             scene_prompt=f"placeholder for {job_id}",
             output_path=str(self.output_dir / f"{job_id}.mp4"),
-            width=640,
-            height=360,
+            width=512,
+            height=288,
             fps=12,
             duration=2.0,
             seed=42,
@@ -185,6 +185,30 @@ async def get_video_engine() -> VideoEngine:
         _video_engine_instance = MockVideoEngine()
         return _video_engine_instance
 
+    if engine_name == "sadtalker":
+        from app.engines.video.sadtalker_engine import SadTalkerVideoEngine
+
+        engine = SadTalkerVideoEngine()
+        await engine.initialize()
+        _video_engine_instance = engine
+        return _video_engine_instance
+
+    if engine_name == "animatediff_lcm":
+        from app.engines.video.animatediff_lcm_engine import AnimateDiffLCMVideoEngine
+
+        engine = AnimateDiffLCMVideoEngine()
+        await engine.initialize()
+        _video_engine_instance = engine
+        return _video_engine_instance
+
+    if engine_name == "hybrid":
+        from app.engines.video.hybrid_engine import HybridVideoEngine
+
+        engine = HybridVideoEngine()
+        await engine.initialize()
+        _video_engine_instance = engine
+        return _video_engine_instance
+
     if engine_name in {"wan", "wan_local"}:
         engine = WanVideoEngine(model_path=settings.WAN_MODEL_PATH)
         await engine.initialize()
@@ -192,7 +216,8 @@ async def get_video_engine() -> VideoEngine:
         return _video_engine_instance
 
     raise RuntimeError(
-        f"Unsupported VIDEO_ENGINE '{engine_name}'. Set VIDEO_ENGINE=wan or wan_local for real Wan2.2 generation."
+        f"Unsupported VIDEO_ENGINE '{engine_name}'. "
+        f"Options: sadtalker, animatediff_lcm, hybrid, wan, wan_local, mock."
     )
 
 

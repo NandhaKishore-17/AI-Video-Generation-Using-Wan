@@ -27,6 +27,14 @@ class EpisodeGeneratorModule:
     Runs full autonomous pipeline: Screenplay -> Scene Breakdown -> Dialogue Generation -> Images -> Videos -> Voice & SRT -> Music -> Render MP4 -> Update Memory -> Increment Universe State.
     """
 
+    def __init__(self):
+        self._generation_lock = asyncio.Lock()
+
+    @property
+    def is_generating(self) -> bool:
+        """Returns True if a video generation pipeline is currently in progress."""
+        return self._generation_lock.locked()
+
     def _set_episode_failed(self, episode_id: str, error_msg: str):
         db = SessionLocal()
         try:
@@ -44,6 +52,17 @@ class EpisodeGeneratorModule:
             db.close()
 
     async def generate_episode_pipeline(
+        self,
+        episode_id: str,
+        universe_id: str,
+        brief: Dict[str, Any],
+        custom_prompt: str = "",
+        episode_duration_seconds: float = 30.0
+    ) -> None:
+        async with self._generation_lock:
+            await self._run_pipeline(episode_id, universe_id, brief, custom_prompt, episode_duration_seconds)
+
+    async def _run_pipeline(
         self,
         episode_id: str,
         universe_id: str,
@@ -244,11 +263,17 @@ class EpisodeGeneratorModule:
                     for line in dialogue_script:
                         speaker_name = line.get("speaker")
                         if speaker_name:
+                            matched = False
                             for c in chars_for_dialogue:
                                 c_name = c.get("name", "").lower()
-                                if c_name == speaker_name.lower() or c_name in speaker_name.lower() or speaker_name.lower() in c_name:
+                                speaker_lower = speaker_name.lower()
+                                c_parts = set(c_name.split())
+                                s_parts = set(speaker_lower.split())
+                                
+                                if c_name == speaker_lower or c_name in speaker_lower or speaker_lower in c_name or (c_parts & s_parts):
                                     line["voice_id"] = c.get("voice_actor_preset")
                                     line["character_id"] = c.get("id")
+                                    matched = True
                                     
                                     print("\n" + "=" * 80)
                                     print("CHARACTER RESOLUTION")
@@ -258,6 +283,11 @@ class EpisodeGeneratorModule:
                                     print("=" * 80 + "\n")
                                     
                                     break
+                            
+                            if not matched:
+                                logger.warning(f"[DIALOGUE] Speaker '{speaker_name}' did not match any frontend character. Falling back to VoiceManager.")
+                                line["voice_id"] = None
+                                line["character_id"] = None
                                     
                     accumulated_dialogue.extend(dialogue_script)
                 except Exception as e:
@@ -303,14 +333,6 @@ class EpisodeGeneratorModule:
                     self._set_episode_failed(episode_id, f"Image generation failed for scene {idx}: {e}")
                     return
                 
-                logger.info(f"[VIDEO] Generating video for Scene {idx}...")
-                try:
-                    vid_url = await video_engine.generate_scene_video(scene_id=scene_id, image_relative_url=img_url, motion_prompt=scene_vid_prompt, duration_seconds=target_duration)
-                except Exception as e:
-                    logger.error(f"[VIDEO] Video generation failed for Scene {idx}: {e}")
-                    self._set_episode_failed(episode_id, f"Episode generated successfully, but video generation failed: {e}")
-                    return
-                
                 logger.info(f"[TTS] Generating audio for Scene {idx}...")
                 try:
                     audio_url, srt_content, scene_dur = await voice_engine.generate_scene_audio_and_srt(scene_id=scene_id, dialogue_list=dialogue_script)
@@ -319,8 +341,35 @@ class EpisodeGeneratorModule:
                     logger.error(f"[TTS] Audio generation failed for Scene {idx}: {e}")
                     self._set_episode_failed(episode_id, f"TTS generation failed for scene {idx}: {e}")
                     return
+                
+                # Calculate actual required duration so video does not cut off early
+                actual_duration = max(target_duration, scene_dur)
+                
+                # Resolve absolute file paths for image and audio (needed by SadTalker/Hybrid)
+                import os
+                _media_dir = settings.MEDIA_OUTPUT_DIR
+                _img_filename = os.path.basename(img_url) if img_url else None
+                _img_path = os.path.join(_media_dir, _img_filename) if _img_filename else None
+                _aud_filename = os.path.basename(audio_url) if audio_url else None
+                _aud_path = os.path.join(_media_dir, _aud_filename) if _aud_filename else None
+                
+                logger.info(f"[VIDEO] Generating video for Scene {idx} (duration: {actual_duration}s)...")
+                logger.info(f"[VIDEO] image_path={_img_path}, audio_path={_aud_path}")
+                try:
+                    vid_url = await video_engine.generate_scene_video(
+                        scene_id=scene_id,
+                        image_relative_url=img_url,
+                        motion_prompt=scene_vid_prompt,
+                        duration_seconds=actual_duration,
+                        image_path=_img_path,
+                        audio_path=_aud_path,
+                    )
+                except Exception as e:
+                    logger.error(f"[VIDEO] Video generation failed for Scene {idx}: {e}")
+                    self._set_episode_failed(episode_id, f"Episode generated successfully, but video generation failed: {e}")
+                    return
                     
-                score_url = await music_engine.generate_score_and_sfx(scene_id=scene_id, genre=brief["universe_genre"], duration_seconds=scene_dur)
+                score_url = await music_engine.generate_score_and_sfx(scene_id=scene_id, genre=brief["universe_genre"], duration_seconds=actual_duration)
 
                 # Save Asset URLs
                 logger.info(f"[DATABASE] Updating asset URLs for Scene {idx}...")

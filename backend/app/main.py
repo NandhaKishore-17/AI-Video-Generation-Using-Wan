@@ -40,8 +40,8 @@ app.include_router(video_generation_router, prefix=settings.API_V1_STR)
 app.include_router(endpoints_router, prefix=settings.API_V1_STR)  # universes, episodes, analytics, etc.
 
 # Serve generated media files (videos, images, audio) at /media
-from app.core.config import BASE_DIR
-media_root_dir = os.path.join(BASE_DIR, "media")
+from app.core.config import settings
+media_root_dir = settings.MEDIA_OUTPUT_DIR
 os.makedirs(media_root_dir, exist_ok=True)
 app.mount("/media", StaticFiles(directory=media_root_dir), name="media")
 

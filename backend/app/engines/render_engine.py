@@ -105,7 +105,7 @@ class FFmpegVideoRenderEngine:
                     valid_video_paths.append(full_video_path)
 
             # Collect scene character audio path
-            audio_rel = scene.get("audio_url") or scene.get("score_url")
+            audio_rel = scene.get("audio_url")
             if audio_rel:
                 audio_filename = os.path.basename(audio_rel)
                 # Try media_output dir first, then audio/ subdirectory
@@ -224,36 +224,36 @@ class FFmpegVideoRenderEngine:
         except Exception as e:
             logger.warning(f"FFmpeg execution failed: {e}. Executing direct audio-video multiplex fallback.")
 
-        # Fallback: Multiplex primary video with character audio file if available
-        if valid_video_paths:
-            primary_video = valid_video_paths[0]
-            primary_audio = valid_audio_paths[0] if valid_audio_paths else None
-            if primary_audio and os.path.exists(primary_audio):
-                try:
-                    cmd_fallback = [
-                        ffmpeg_exe, "-y",
-                        "-i", primary_video,
-                        "-i", primary_audio,
-                        "-map", "0:v:0",
-                        "-map", "1:a:0",
-                        "-c:v", "libx264",
-                        "-pix_fmt", "yuv420p",
-                        "-c:a", "aac",
-                        "-b:a", "192k",
-                        "-shortest",
-                        output_path
-                    ]
-                    subprocess.run(cmd_fallback, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Fallback: Multiplex using standard fast path (no complex filters)
+        if valid_video_paths and os.path.exists(concat_list_path):
+            try:
+                cmd_fallback = [
+                    ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", concat_list_path
+                ]
+                if has_audio and os.path.exists(combined_audio_path):
+                    cmd_fallback.extend(["-i", combined_audio_path, "-map", "0:v:0", "-map", "1:a:0"])
+                else:
+                    cmd_fallback.extend(["-map", "0:v:0", "-an"])
+                
+                cmd_fallback.extend([
+                    "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac",
+                    "-b:a", "192k",
+                    output_path
+                ])
+                subprocess.run(cmd_fallback, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                
+                if has_audio and not self._verify_audio_stream(output_path):
+                    logger.warning("Fallback Final MP4 has no audio stream, but audio was expected!")
                     
-                    if not self._verify_audio_stream(output_path):
-                        raise ValueError("Fallback Final MP4 has no audio stream!")
-                        
-                    self._validate_and_print_final_video(output_path)
-                        
-                    return f"/media/{output_filename}"
-                except Exception as fb_err:
-                    logger.warning(f"Fallback multiplex failed: {fb_err}")
-            
+                self._validate_and_print_final_video(output_path)
+                return f"/media/{output_filename}"
+            except Exception as fb_err:
+                logger.warning(f"Fallback multiplex failed: {fb_err}")
+                
+            # Absolute last resort
+            primary_video = valid_video_paths[0]
             primary_name = os.path.basename(primary_video)
             return f"/media/{primary_name}"
 

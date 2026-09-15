@@ -31,8 +31,8 @@ export const Analytics: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <GlassCard>
           <div className="space-y-2">
-            <span className="text-xs font-mono text-accent-primary">GEMMA 3:4B LLM INFERENCE</span>
-            <span className="text-xl font-extrabold text-text-primary">{data?.engine_benchmarks?.gemma_llm_avg_sec || '1.2'}s</span>
+            <span className="text-xs font-mono text-accent-primary">QWEN3 8B HERETIC LLM INFERENCE</span>
+            <span className="text-xl font-extrabold text-text-primary">{data?.engine_benchmarks?.qwen_llm_avg_sec || '1.2'}s</span>
             <p className="text-[11px] text-text-secondary font-mono">Average time for Screenplay & Scene Breakdown</p>
           </div>
         </GlassCard>

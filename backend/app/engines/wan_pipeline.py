@@ -1,10 +1,14 @@
 """
-Wan 2.2 TI2V-5B Local GPU/CPU Pipeline.
+Wan 2.1 T2V-1.3B Local GPU/CPU Pipeline.
 
-Loads and runs the Wan 2.2 Text/Image-to-Video model from local weights or
-Hugging Face repository ('Wan-AI/Wan2.2-TI2V-5B-Diffusers').
+Loads and runs the Wan 2.1 Text-to-Video 1.3B model from local weights or
+Hugging Face repository ('Wan-AI/Wan2.1-T2V-1.3B-Diffusers').
 
 This pipeline loads once and reuses the same model for subsequent requests.
+NOTE: The 1.3B model is text-to-video only — no image conditioning.
+
+Post-processing: After generation, a 2x Lanczos upscale pass is applied
+(480x272 -> 960x544) using OpenCV for improved perceived quality.
 """
 
 import asyncio
@@ -38,8 +42,8 @@ class WanInferenceError(WanPipelineError):
 
 class WanLocalPipeline:
     """
-    Manages loading, running, and unloading the Wan 2.2 TI2V-5B model
-    for image-to-video generation using diffusers.
+    Manages loading, running, and unloading the Wan 2.1 T2V-1.3B model
+    for text-to-video generation using diffusers.
     """
 
     def __init__(self):
@@ -64,14 +68,14 @@ class WanLocalPipeline:
         if "Wan-AI/" in model_str:
             logger.info("Using Hugging Face repository ID: %s", model_str)
             return model_str
-            
-        default_hf_repo = "Wan-AI/Wan2.2-TI2V-5B-Diffusers"
+
+        default_hf_repo = "Wan-AI/Wan2.1-T2V-1.3B-Diffusers"
         logger.info("Local path '%s' not found. Falling back to Hugging Face repository '%s'", model_str, default_hf_repo)
         return default_hf_repo
 
     def load_model(self) -> None:
         logger.info("=" * 80)
-        logger.info("STARTING REAL WAN 2.2 PIPELINE INITIALIZATION")
+        logger.info("STARTING REAL WAN 2.1 T2V-1.3B PIPELINE INITIALIZATION")
         logger.info("=" * 80)
 
         # ── Step 1: Loading configuration ───────────────────────────────────
@@ -112,15 +116,15 @@ class WanLocalPipeline:
         self.device = target_device
 
         try:
-            from diffusers import WanImageToVideoPipeline
+            from diffusers import WanPipeline
             from diffusers.schedulers import UniPCMultistepScheduler
 
-            # ── Step 3 to 6: Loading WanImageToVideoPipeline from pretrained ─
-            logger.info("[STEP 3-6/9] Loading WanImageToVideoPipeline components from %s...", model_id)
-            self.pipeline = WanImageToVideoPipeline.from_pretrained(
+            # ── Step 3 to 6: Loading WanPipeline (T2V) from pretrained ────────
+            logger.info("[STEP 3-6/9] Loading WanPipeline (T2V-1.3B) components from %s...", model_id)
+            self.pipeline = WanPipeline.from_pretrained(
                 model_id,
                 torch_dtype=torch_dtype,
-                low_cpu_mem_usage=not cuda_available,
+                low_cpu_mem_usage=True,  # Always True: loads layer-by-layer to keep peak RAM low
             )
 
             # ── Step 7: Loading scheduler ───────────────────────────────────
@@ -136,10 +140,11 @@ class WanLocalPipeline:
                     self.pipeline.scheduler.config
                 )
 
-            # Only enable CPU offload when CUDA is present (requires accelerate + GPU)
+            # Sequential CPU offload: moves each component to CPU after use
+            # This is more aggressive than model_cpu_offload and uses less peak VRAM+RAM
             if settings.WAN_ENABLE_CPU_OFFLOAD and cuda_available:
-                logger.info("Enabling model CPU offloading for VRAM efficiency...")
-                self.pipeline.enable_model_cpu_offload()
+                logger.info("Enabling sequential CPU offloading (aggressive VRAM+RAM savings)...")
+                self.pipeline.enable_sequential_cpu_offload()
             else:
                 logger.info("Moving real pipeline to device %s...", self.device)
                 self.pipeline = self.pipeline.to(self.device)
@@ -154,7 +159,7 @@ class WanLocalPipeline:
 
             # ── Log every loaded component ────────────────────────────────────
             logger.info("[COMPONENTS] Listing all loaded pipeline components:")
-            for comp_name in ["tokenizer", "text_encoder", "transformer", "vae", "scheduler", "image_encoder"]:
+            for comp_name in ["tokenizer", "text_encoder", "transformer", "vae", "scheduler"]:
                 comp = getattr(self.pipeline, comp_name, None)
                 if comp is not None:
                     logger.info("  + %-20s: %s", comp_name, type(comp).__name__)
@@ -163,7 +168,7 @@ class WanLocalPipeline:
 
             self._is_loaded = True
             logger.info("=" * 80)
-            logger.info("REAL WAN 2.2 TI2V-5B PIPELINE LOADED SUCCESSFULLY!")
+            logger.info("REAL WAN 2.1 T2V-1.3B PIPELINE LOADED SUCCESSFULLY!")
             logger.info("=" * 80)
 
         except ImportError as exc:
@@ -193,6 +198,22 @@ class WanLocalPipeline:
         import numpy as np
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        try:
+            import sys
+            engine_dir = Path("D:/mvid/daily_engine")
+            if str(engine_dir) not in sys.path:
+                sys.path.insert(0, str(engine_dir))
+            from motion_engine import render_parallax_motion_scene
+            dur = num_frames / max(1, fps)
+            render_parallax_motion_scene(
+                Path(image_path), dur, Path(output_path),
+                target_width=width, target_height=height, fps=fps, quality_mode="balanced"
+            )
+            if Path(output_path).exists() and Path(output_path).stat().st_size > 0:
+                return output_path
+        except Exception as exc:
+            logger.warning("Parallax fallback error (%s), using safe static drift.", exc)
+
         source_image = Image.open(image_path).convert("RGB") if Path(image_path).exists() else Image.new("RGB", (width, height), color=(0, 0, 0))
         if source_image.size != (width, height):
             source_image = source_image.resize((width, height))
@@ -216,7 +237,7 @@ class WanLocalPipeline:
 
     async def generate_video(
         self,
-        image_path: str,
+        image_path: str,  # kept for API compatibility but not passed to T2V pipeline
         prompt: str,
         output_path: str,
         negative_prompt: str = "Distorted, discontinuous, ugly, blurry, low resolution, motionless, static, disfigured",
@@ -227,6 +248,7 @@ class WanLocalPipeline:
         guidance_scale: Optional[float] = None,
         fps: Optional[int] = None,
         seed: int = 42,
+        target_duration: Optional[float] = None,
     ) -> str:
         if not prompt or not prompt.strip():
             raise WanInferenceError("Prompt must be a non-empty string.")
@@ -237,6 +259,8 @@ class WanLocalPipeline:
         num_inference_steps = num_inference_steps or settings.WAN_NUM_INFERENCE_STEPS
         guidance_scale = guidance_scale if guidance_scale is not None else settings.WAN_GUIDANCE_SCALE
         fps = fps or settings.DEFAULT_FPS
+
+        fallback_frames = int(round(target_duration * fps)) if (target_duration and fps) else num_frames
 
         if not self.is_loaded:
             logger.info("Model not loaded yet, triggering load_model()...")
@@ -249,11 +273,11 @@ class WanLocalPipeline:
 
         if self.pipeline is None:
             logger.warning("Real Wan2.2 pipeline unavailable; using local synthetic renderer instead.")
-            return self._fallback_generate_video(image_path, output_path, width, height, fps, num_frames)
+            return self._fallback_generate_video(image_path, output_path, width, height, fps, fallback_frames)
 
         # ── Step 8: Real Video generation (inference) ───────────────────────
         logger.info(
-            "[STEP 8/9] STARTING REAL WAN 2.2 INFERENCE: prompt='%s', width=%s, height=%s, fps=%s, frames=%s, steps=%s, seed=%s",
+            "[STEP 8/9] STARTING REAL WAN 2.1 T2V INFERENCE: prompt='%s', width=%s, height=%s, fps=%s, frames=%s, steps=%s, seed=%s",
             prompt[:120],
             width,
             height,
@@ -266,27 +290,16 @@ class WanLocalPipeline:
         loop = asyncio.get_running_loop()
 
         def _run_real_inference() -> None:
-            from PIL import Image
-
-            if Path(image_path).exists():
-                image = Image.open(image_path).convert("RGB")
-                if image.size != (width, height):
-                    image = image.resize((width, height))
-                    logger.info("Resized conditioning image to %s", (width, height))
-            else:
-                logger.info("Creating conditioning image for Wan2.2 at %s", image_path)
-                image = Image.new("RGB", (width, height), color=(0, 0, 0))
-
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             # Generator must always be on 'cpu' when no CUDA — even if self.device differs
             generator_device = "cpu" if not torch.cuda.is_available() else self.device
             generator = torch.Generator(device=generator_device).manual_seed(seed)
             logger.info("Generator device: %s", generator_device)
 
-            logger.info("Executing real PyTorch diffusion inference loop...")
+            # Wan 2.1 T2V-1.3B is text-to-video only — no image argument
+            logger.info("Executing real PyTorch diffusion inference loop (T2V)...")
             with torch.inference_mode():
                 output = self.pipeline(
-                    image=image,
                     prompt=prompt,
                     negative_prompt=negative_prompt,
                     num_inference_steps=num_inference_steps,
@@ -297,16 +310,40 @@ class WanLocalPipeline:
                     generator=generator,
                 )
 
-            frames = output.frames[0]
+            frames = list(output.frames[0])
+
+            # If target duration exceeds generated frames, extend via seamless ping-pong loop
+            if target_duration and fps and (target_duration * fps) > len(frames):
+                target_frame_count = int(round(target_duration * fps))
+                logger.info(
+                    "Extending %d diffusion frames to %d frames (%.2fs target duration) via ping-pong loop...",
+                    len(frames),
+                    target_frame_count,
+                    target_duration,
+                )
+                forward_seq = frames
+                backward_seq = frames[-2:0:-1] if len(frames) > 2 else []
+                cycle = forward_seq + backward_seq
+                extended_frames = []
+                while len(extended_frames) < target_frame_count:
+                    needed = target_frame_count - len(extended_frames)
+                    extended_frames.extend(cycle[:needed])
+                frames = extended_frames
+
             # ── Step 9: Saving real output video ────────────────────────────────
-            logger.info("[STEP 9/9] Exporting REAL Wan2.2 video to %s...", output_path)
+            logger.info("[STEP 9/9] Exporting REAL Wan2.1 T2V video (%d frames) to %s...", len(frames), output_path)
             import imageio.v2 as imageio
             import numpy as np
             writer = imageio.get_writer(output_path, fps=fps, codec="libx264", quality=8)
             for frame in frames:
-                writer.append_data(np.array(frame))
+                arr = np.array(frame)
+                if arr.dtype in (np.float32, np.float64):
+                    arr = (np.clip(arr, 0.0, 1.0) * 255.0).astype(np.uint8)
+                elif arr.dtype != np.uint8:
+                    arr = arr.astype(np.uint8)
+                writer.append_data(arr)
             writer.close()
-            logger.info("REAL Wan2.2 inference completed successfully. Saved video to %s", output_path)
+            logger.info("REAL Wan2.1 T2V inference completed successfully. Saved video to %s", output_path)
 
         try:
             await loop.run_in_executor(None, _run_real_inference)
@@ -314,10 +351,27 @@ class WanLocalPipeline:
             tb = traceback.format_exc()
             logger.error("Real Wan2.2 inference failed with traceback:\n%s", tb)
             logger.warning("Falling back to a local synthetic video renderer because the Wan2.2 model could not run in this environment.")
-            return self._fallback_generate_video(image_path, output_path, width, height, fps, num_frames)
+            return self._fallback_generate_video(image_path, output_path, width, height, fps, fallback_frames)
 
         if not Path(output_path).exists():
             raise WanInferenceError(f"Wan2.2 generation did not produce output at {output_path}")
+
+        # ── Post-processing: 2x Lanczos upscale ─────────────────────────────
+        try:
+            from app.engines.upscale_engine import upscale_video
+            logger.info("[POST] Starting 2x Lanczos upscale pass...")
+            upscaled_path = await asyncio.get_running_loop().run_in_executor(
+                None,
+                lambda: upscale_video(
+                    input_path=output_path,
+                    output_path=output_path,  # overwrite in-place
+                    scale=2.0,
+                ),
+            )
+            logger.info("[POST] Upscale complete: %s", upscaled_path)
+        except Exception as upscale_exc:
+            # Upscaling is best-effort — never fail the whole generation
+            logger.warning("[POST] Upscale step skipped: %s", upscale_exc)
 
         return output_path
 

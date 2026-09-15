@@ -349,24 +349,31 @@ export const api = {
 
   // Episodes Generation & Catalog
   async generateEpisode(universe_id: string, custom_prompt?: string, episode_duration_seconds?: number, reference_document_id?: string, reference_influence?: string): Promise<Episode> {
-    const res = await axios.post(`${API_BASE}/episodes/generate`, { universe_id, custom_prompt, episode_duration_seconds, reference_document_id, reference_influence });
-    if (res.data) {
-      const currentEps = getLocalData<Episode[]>('episodes', []);
-      setLocalData('episodes', [res.data, ...currentEps]);
-      
-      const universes = getLocalData<Universe[]>('universes', []);
-      const updatedUniverses = universes.map(u => {
-        if (u.id === universe_id) {
-          return { ...u, total_episodes: (u.total_episodes || 0) + 1 };
-        }
-        return u;
-      });
-      setLocalData('universes', updatedUniverses);
-      
-      return res.data;
+    try {
+      const res = await axios.post(`${API_BASE}/episodes/generate`, { universe_id, custom_prompt, episode_duration_seconds, reference_document_id, reference_influence });
+      if (res.data) {
+        const currentEps = getLocalData<Episode[]>('episodes', []);
+        setLocalData('episodes', [res.data, ...currentEps]);
+        
+        const universes = getLocalData<Universe[]>('universes', []);
+        const updatedUniverses = universes.map(u => {
+          if (u.id === universe_id) {
+            return { ...u, total_episodes: (u.total_episodes || 0) + 1 };
+          }
+          return u;
+        });
+        setLocalData('universes', updatedUniverses);
+        
+        return res.data;
+      }
+      throw new Error("Failed to generate episode");
+    } catch (err: any) {
+      // Surface the server's detail message (e.g., concurrency conflict) if available
+      const serverDetail = err?.response?.data?.detail;
+      throw new Error(serverDetail || err?.message || "Failed to generate episode");
     }
-    throw new Error("Failed to generate episode");
   },
+
 
   async getEpisodes(universe_id?: string): Promise<Episode[]> {
     const res = await axios.get(`${API_BASE}/episodes`, { params: { universe_id } });
@@ -517,7 +524,7 @@ export const api = {
         total_characters: chars.length + 2,
         completed_renders: eps.filter(e => e.status === 'COMPLETED').length,
         engine_benchmarks: {
-          gemma_llm_avg_sec: 1.2,
+          qwen_llm_avg_sec: 1.2,
           flux_image_avg_sec: 3.4,
           wan_video_avg_sec: 5.1,
           piper_voice_avg_sec: 0.8,

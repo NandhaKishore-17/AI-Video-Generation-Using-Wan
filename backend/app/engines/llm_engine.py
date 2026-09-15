@@ -337,6 +337,9 @@ VALIDATION RULES:
         return data
 
     def _extract_json(self, raw: str) -> Dict[str, Any]:
+        # 0. Remove <think>...</think> blocks
+        raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL)
+        
         # 1. Remove markdown fences robustly
         cleaned = re.sub(r"^```[a-zA-Z]*\n?", "", raw.strip(), flags=re.MULTILINE)
         cleaned = re.sub(r"```$", "", cleaned.strip(), flags=re.MULTILINE).strip()

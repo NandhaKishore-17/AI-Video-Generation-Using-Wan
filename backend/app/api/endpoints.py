@@ -325,6 +325,13 @@ async def generate_episode(payload: EpisodeGenerateRequest, background_tasks: Ba
     """
     Automatically generates a new episode with screenplay, keyframe images, video clips, dialogue audio, music, and subtitles.
     """
+    # --- Concurrency Guard: only one video can generate at a time ---
+    if episode_generator.is_generating:
+        raise HTTPException(
+            status_code=409,
+            detail="Another video is already being generated. Please wait for it to finish before starting a new one."
+        )
+
     from app.modules.story_director import story_director
     universe = db.query(Universe).filter(Universe.id == payload.universe_id).first()
     if not universe:
@@ -375,6 +382,7 @@ async def generate_episode(payload: EpisodeGenerateRequest, background_tasks: Ba
     return episode
 
 
+
 @router.get("/episodes", response_model=List[EpisodeResponse])
 def list_episodes(universe_id: Optional[str] = None, db: Session = Depends(get_db)):
     """
@@ -400,14 +408,14 @@ def get_episode_detail(episode_id: str, db: Session = Depends(get_db)):
 
     scenes = db.query(Scene).filter(Scene.episode_id == episode_id).order_by(Scene.scene_number).all()
     
-    from app.core.config import BASE_DIR
+    from app.core.config import settings
     
     import logging
     logger = logging.getLogger("playback")
     logger.debug(f"[PLAYBACK] Loading episode {episode_id} with {len(scenes)} scenes.")
     
     # Verify media paths exist before returning URLs to prevent 404s
-    media_root_dir = Path(BASE_DIR) / "media"
+    media_root_dir = Path(settings.MEDIA_OUTPUT_DIR)
     for s in scenes:
         if s.image_url and not (media_root_dir / s.image_url.lstrip("/").replace("media/", "", 1)).exists():
             if episode.status == "COMPLETED":
@@ -662,7 +670,7 @@ def get_analytics(db: Session = Depends(get_db)):
         "total_characters": total_characters,
         "completed_renders": completed_renders,
         "engine_benchmarks": {
-            "gemma_llm_avg_sec": 1.2,
+            "qwen_llm_avg_sec": 1.2,
             "flux_image_avg_sec": 3.4,
             "wan_video_avg_sec": 5.1,
             "piper_voice_avg_sec": 0.8,

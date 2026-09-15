@@ -1,0 +1,111 @@
+{
+  "episodes": [
+    {
+      "id": "chola_maritime_1025",
+      "title_tamil": "ராஜேந்திர சோழனின் கடற்படை & வினாயகர் கடல் பயணம்",
+      "title_english": "Ganesha Across the Sea: Rajendra Chola's Maritime Expedition (1025 CE)",
+      "description": "1,000 years ago, Emperor Rajendra Chola I unleashed the most powerful navy in Asian history. Follow documentary presenter Yaazhini as she investigates the 1025 CE Chola maritime expedition.",
+      "tags": ["CholaEmpire", "RajendraChola", "Yaazhini", "Kaalapadhivugal", "TamilHistory", "AncientNavy"],
+      "scenes": [
+        {
+          "id": 1,
+          "type": "host_vlog",
+          "host_image": "yaazhini_presenter.jpg",
+          "tamil_text": "வணக்கம்! இன்னைக்கு நாம ஆயிரம் வருஷத்துக்கு முன்னாடி... ராஜேந்திர சோழனின் மாபெரும் கடற்படைக்குள்ள வரலாற்று சான்றுகளுடன் பயணம் செய்கிறோம்!",
+          "english_sub": "Hello! Today we journey 1,000 years back... exploring Rajendra Chola's mighty armada through historical evidence!",
+          "badge": "கிபி 1025 | பண்டைய சோழர் துறைமுகம்"
+        },
+        {
+          "id": 2,
+          "type": "broll_motion",
+          "broll_video": "broll_ancient_harbor.mp4",
+          "tamil_text": "நாகப்பட்டினம் துறைமுகத்தில் இருந்து... ஸ்ரீவிஜயத்தை நோக்கி புறப்படும் பிரம்மாண்ட போர்க்கப்பல்கள்!",
+          "english_sub": "From Nagapattinam harbor... hundreds of war galleons depart for Srivijaya!",
+          "badge": "நாகப்பட்டினம் நாவாய் தளம்"
+        },
+        {
+          "id": 3,
+          "type": "broll_motion",
+          "broll_video": "broll_fleet_sailing.mp4",
+          "tamil_text": "வங்காள விரிகுடாவை கிழித்துக்கொண்டு... சீறிப்பாயும் சோழர்களின் புலி கொடி தாங்கிய போர்க்கப்பல்கள்!",
+          "english_sub": "Cutting across the Bay of Bengal... the Chola fleet surges under the roaring Tiger Flag!",
+          "badge": "வங்காள விரிகுடா | பெருங்கடல் பயணம்"
+        },
+        {
+          "id": 4,
+          "type": "broll_motion",
+          "broll_video": "broll_sailors_rigging.mp4",
+          "tamil_text": "கடல் சீற்றத்தை எதிர்கொண்டு பாய்மரங்களை இயக்கும் வீர சோழ மாலுமிகள்!",
+          "english_sub": "Valiant Chola sailors battling the tempest to steer the massive sails!",
+          "badge": "போர்க்கப்பல் தளம் | சோழ மாலுமிகள்"
+        },
+        {
+          "id": 5,
+          "type": "host_deck",
+          "host_image": "yaazhini_presenter.jpg",
+          "tamil_text": "பாருங்க... உலக வரலாற்றிலேயே கடல் கடந்து மாபெரும் வெற்றி கண்ட ஒரே தமிழ் பேரரசு நம் சோழ பேரரசுதான்!",
+          "english_sub": "Look around... the only empire to establish transoceanic dominance was our ancient Chola Empire!",
+          "badge": "ராஜேந்திர சோழனின் பெருங்கப்பல்"
+        },
+        {
+          "id": 6,
+          "type": "broll_motion",
+          "broll_video": "broll_ocean_waves_temple.mp4",
+          "tamil_text": "கடல் கடந்து சோழர்களின் வெற்றியை நிலைநாட்டிய விநாயகரின் அருள் இந்த பெருங்கடலில் இன்றும் எதிரொலிக்குது!",
+          "english_sub": "The blessings of Lord Ganesha protecting the Chola maritime victory echo across the waves!",
+          "badge": "கடல் கடந்த வெற்றிச் சின்னம்"
+        },
+        {
+          "id": 7,
+          "type": "host_vlog",
+          "host_image": "yaazhini_presenter.jpg",
+          "tamil_text": "கடந்த காலத்தை சான்றுகளுடன் மீண்டும் பார்ப்போம்... காலப் பதிவுகள் சேனலை மறக்காம சப்ஸ்கிரைப் பண்ணுங்க!",
+          "english_sub": "Let’s revisit the past, through the evidence. Don't forget to subscribe to Kaalapadhivugal!",
+          "badge": "காலப் பதிவுகள் • யாழினி"
+        }
+      ]
+    },
+    {
+      "id": "tanjore_temple_secrets",
+      "title_tamil": "தஞ்சை பெரிய கோவில் ரகசியங்கள் | ராஜராஜ சோழனின் பிரம்மாண்டம்",
+      "title_english": "Secrets of Tanjore Big Temple: Raja Raja Chola's Architectural Miracle",
+      "description": "How did Raja Raja Chola lift an 80-ton single stone cap atop the Brihadeeswarar Temple 1,000 years ago with zero cement? Documentary presenter Yaazhini investigates.",
+      "tags": ["BrihadeeswararTemple", "RajaRajaChola", "Yaazhini", "Kaalapadhivugal", "TamilArchitecture"],
+      "scenes": [
+        {
+          "id": 1,
+          "type": "host_vlog",
+          "host_image": "yaazhini_presenter.jpg",
+          "tamil_text": "வணக்கம்! இன்னைக்கு நாம வந்திருப்பது உலகத்தையே வியக்க வைக்கும் தஞ்சை பெரிய கோவிலின் ரகசியங்களை தேடி!",
+          "english_sub": "Hello! Today we are exploring the astounding secrets of the Tanjore Big Temple!",
+          "badge": "கிபி 1010 | தஞ்சாவூர்"
+        },
+        {
+          "id": 2,
+          "type": "broll_motion",
+          "image_src": "tanjore_vimana_tower.jpg",
+          "tamil_text": "80 டன் எடைகொண்ட ஒற்றைக் கல்லை... 216 அடி உயர கோபுரத்தின் உச்சிக்கு கிரேன் இல்லாமல் எப்படி ஏற்றினார்கள்?",
+          "english_sub": "How did they hoist an 80-ton single granite stone atop a 216-foot tower with zero modern cranes?",
+          "badge": "தஞ்சை பெருவுடையார் விமானம்"
+        },
+        {
+          "id": 3,
+          "type": "broll_motion",
+          "image_src": "tanjore_nandi_mandapam.jpg",
+          "tamil_text": "ஆயிரம் ஆண்டுகளுக்கு மேலாக பூகம்பங்களையும் இயற்கை சீற்றங்களையும் தாங்கி நிற்கும் சோழர்களின் கட்டிடக்கலை அதிசயம்!",
+          "english_sub": "Standing tall for over 1,000 years, withstanding earthquakes with interlocking granite engineering!",
+          "badge": "ஒற்றைக்கல் நந்தி மண்டபம்"
+        },
+        {
+          "id": 4,
+          "type": "host_vlog",
+          "host_image": "yaazhini_presenter.jpg",
+          "tamil_text": "கடந்த காலத்தை சான்றுகளுடன் மீண்டும் பார்ப்போம்... காலப் பதிவுகள் சேனலை மறக்காம சப்ஸ்கிரைப் பண்ணுங்க!",
+          "english_sub": "Let’s revisit the past, through the evidence. Don't forget to subscribe to Kaalapadhivugal!",
+          "badge": "காலப் பதிவுகள் • யாழினி"
+        }
+      ]
+    }
+  ]
+}
+

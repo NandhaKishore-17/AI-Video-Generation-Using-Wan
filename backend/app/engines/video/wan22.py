@@ -68,6 +68,7 @@ class Wan22Wrapper:
 
             Image.new("RGB", (max(1, width), max(1, height)), color=(0, 0, 0)).save(condition_path)
 
+        wan_frames = getattr(settings, "WAN_NUM_FRAMES", 81)
         try:
             return await wan_pipeline.generate_video(
                 image_path=str(condition_path),
@@ -77,7 +78,8 @@ class Wan22Wrapper:
                 width=width,
                 fps=fps,
                 seed=seed,
-                num_frames=max(1, int(duration * fps)),
+                num_frames=wan_frames,
+                target_duration=duration,
             )
         except Exception as exc:
             tb = traceback.format_exc()

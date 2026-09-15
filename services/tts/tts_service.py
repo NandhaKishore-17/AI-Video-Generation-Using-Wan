@@ -40,15 +40,23 @@ class EdgeTTSBackend(BaseTTSBackend):
 
             
             logger.info(f"Generating EdgeTTS speech with model/voice: '{clean_voice}'")
-            communicate = edge_tts.Communicate(
-                text=text,
-                voice=clean_voice,
-                pitch=pitch,
-                rate=rate,
-                volume=volume
-            )
             temp_mp3 = output_filepath.replace(".wav", ".mp3")
-            await asyncio.wait_for(communicate.save(temp_mp3), timeout=15.0)
+            for attempt in range(3):
+                try:
+                    communicate = edge_tts.Communicate(
+                        text=text,
+                        voice=clean_voice,
+                        pitch=pitch,
+                        rate=rate,
+                        volume=volume
+                    )
+                    await asyncio.wait_for(communicate.save(temp_mp3), timeout=15.0)
+                    break
+                except Exception as e:
+                    if attempt == 2:
+                        raise e
+                    logger.warning(f"EdgeTTS attempt {attempt + 1} failed: {e}. Retrying in 2s...")
+                    await asyncio.sleep(2)
 
             # Convert generated MP3 to 24kHz WAV PCM
             success = self._convert_mp3_to_wav(temp_mp3, output_filepath)
@@ -161,9 +169,24 @@ class HumanFallbackTTSBackend(BaseTTSBackend):
         )
 
 
-class MockTTSBackend(HumanFallbackTTSBackend):
-    """Alias to HumanFallbackTTSBackend maintaining backwards compatibility while removing robotic voices."""
-    pass
+class MockTTSBackend(BaseTTSBackend):
+    """Absolute last-resort fallback. Generates a silent WAV file to prevent pipeline crashes when completely offline."""
+    async def generate_speech(self, text: str, voice_id: str, output_filepath: str, **kwargs) -> bool:
+        try:
+            import wave
+            import struct
+            from services.tts.audio_utils import TARGET_SAMPLE_RATE
+            with wave.open(output_filepath, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(TARGET_SAMPLE_RATE)
+                # 3 seconds of silence
+                frames = [struct.pack('<h', 0)] * (TARGET_SAMPLE_RATE * 3)
+                wf.writeframes(b''.join(frames))
+            return True
+        except Exception as e:
+            logger.warning(f"MockTTSBackend silent generation failed: {e}")
+            return False
 
 
 class ElevenLabsBackend(BaseTTSBackend):
@@ -276,6 +299,14 @@ class TTSService:
     """
 
     def __init__(self, provider: str = "f5-tts"):
+        try:
+            from app.core.config import settings
+            import os
+            if os.environ.get("ELEVENLABS_API_KEY") or getattr(settings, "ELEVENLABS_API_KEY", None):
+                provider = "elevenlabs"
+        except ImportError:
+            pass
+            
         self.provider = provider
         self.voice_mgr = voice_manager
         self.emotion_map = emotion_mapper
@@ -456,8 +487,8 @@ class TTSService:
             if not line:
                 continue
 
-            speaker_slug = speaker.lower().replace(" ", "_")
-            char_id_str = item.get("character_id", "no_id")[:8] if item.get("character_id") else "no_id"
+            speaker_slug = "".join(c for c in speaker.lower().replace(" ", "_") if c.isalnum() or c == "_")
+            char_id_str = "".join(c for c in (item.get("character_id") or "no_id")[:8] if c.isalnum() or c == "-")
             file_name = f"{char_id_str}_{sc_clean}_{speaker_slug}_{idx:03d}.wav"
             line_filepath = os.path.join(scene_dir, file_name)
 

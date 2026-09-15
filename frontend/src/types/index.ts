@@ -117,7 +117,7 @@ export interface AnalyticsData {
   total_characters: number;
   completed_renders: number;
   engine_benchmarks: {
-    gemma_llm_avg_sec: number;
+    qwen_llm_avg_sec: number;
     flux_image_avg_sec: number;
     wan_video_avg_sec: number;
     piper_voice_avg_sec: number;

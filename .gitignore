@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 .venv/
@@ -8,6 +8,7 @@ env/
 # Environment
 .env
 .env.*
+!.env.example
 
 # Node
 node_modules/
@@ -60,3 +61,22 @@ patch_api.py
 # OS
 .DS_Store
 Thumbs.db
+# Project runtime / generated data
+outputs/
+sample_frames/
+scratch/
+*.backup
+*.bak
+*.old
+patch_*.py
+*patch*.py
+debug_*.py
+provider_benchmark_results.json
+benchmark_results/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+daily_engine/.depth_cache/
+daily_engine/output/
+daily_engine/gfpgan/weights/
+gfpgan/weights/

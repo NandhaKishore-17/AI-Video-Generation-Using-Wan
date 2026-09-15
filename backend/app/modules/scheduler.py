@@ -39,8 +39,9 @@ class AutonomousSchedulerModule:
             config.auto_publish = auto_publish
             config.mode = mode
             config.last_run = now_utc
-            # For immediate start, set next_run to now so the countdown shows 0
-            config.next_run = now_utc
+            # Set next_run to now + interval so the countdown timer shows time until next scheduled run.
+            # The first generation fires immediately in the loop, but subsequent runs follow this schedule.
+            config.next_run = now_utc + timedelta(minutes=interval_minutes) if mode == "interval" else None
             db.commit()
 
             self.is_running = True

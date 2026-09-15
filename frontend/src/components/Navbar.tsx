@@ -91,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Cpu className="w-3.5 h-3.5 text-text-secondary" />
             <div className="flex flex-col">
               <span className="text-[9px] uppercase tracking-wider text-text-secondary">LLM</span>
-              <span className="text-[11px] font-bold text-text-primary">Gemma 3:4B</span>
+              <span className="text-[11px] font-bold text-text-primary">Qwen3 8B Heretic</span>
             </div>
           </div>
           <div className="w-px h-6 bg-neutral-border"></div>

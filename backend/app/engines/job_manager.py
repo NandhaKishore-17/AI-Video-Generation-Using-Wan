@@ -222,8 +222,8 @@ class JobManager:
             await engine.render_video_async(
                 scene_prompt=prompt,
                 output_path=output_file,
-                width=640,
-                height=360,
+                width=512,
+                height=288,
                 fps=12,
                 duration=2.0,
                 seed=42,

@@ -117,6 +117,9 @@ class DialogueEngine:
 
     def _extract_json(self, raw: str) -> Dict[str, Any]:
         import re
+        # 0. Remove <think>...</think> blocks
+        raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL)
+        
         # Try to find a JSON block enclosed in {}
         match = re.search(r'(\{.*\})', raw, re.DOTALL)
         if match:

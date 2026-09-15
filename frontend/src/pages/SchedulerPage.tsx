@@ -23,10 +23,20 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ onTriggerGenerate,
     totalSec: 0
   });
 
+  // Load status on mount / when refreshTrigger changes
   useEffect(() => {
     loadStatus();
   }, [refreshTrigger]);
 
+  // Background poll every 30 seconds — keeps status fresh without hammering the API
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      loadStatus();
+    }, 30000);
+    return () => clearInterval(pollInterval);
+  }, []);
+
+  // Countdown timer — runs every second but only calls loadStatus() ONCE when it reaches 0
   useEffect(() => {
     if (!status?.next_run || !status?.is_running || status?.mode === 'continuous') {
       setTimeLeft({ hours: '00', minutes: '00', seconds: '00', totalSec: 0 });
@@ -36,6 +46,8 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ onTriggerGenerate,
     const targetIso = status.next_run.endsWith('Z') || status.next_run.includes('+')
       ? status.next_run
       : `${status.next_run}Z`;
+
+    let hasFiredReload = false;
 
     const calcTime = () => {
       const targetTime = new Date(targetIso).getTime();
@@ -51,7 +63,9 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ onTriggerGenerate,
     const interval = setInterval(() => {
       const updated = calcTime();
       setTimeLeft(updated);
-      if (updated.totalSec === 0) {
+      // Only trigger one reload when the countdown first reaches 0
+      if (updated.totalSec === 0 && !hasFiredReload) {
+        hasFiredReload = true;
         loadStatus();
       }
     }, 1000);
